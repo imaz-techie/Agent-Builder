@@ -16,7 +16,13 @@ import {
   Settings2,
   Palette,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,24 +30,39 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { agents } from "@/lib/mock-data";
 
-const colorSwatches = ["#6366f1", "#a855f7", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#14b8a6"];
+const colorSwatches = [
+  "#6366f1",
+  "#a855f7",
+  "#22c55e",
+  "#f59e0b",
+  "#ef4444",
+  "#06b6d4",
+  "#ec4899",
+  "#14b8a6",
+];
 
 const integrationSnippets: Record<string, { label: string; code: string }> = {
   HTML: {
     label: "HTML",
-    code: `<script src="https://agentforge.ai/widget.js" data-agent="ag_9H2KD83L"></script>`,
+    code: `<script src="https://agentmax.ai/widget.js" data-agent="ag_9H2KD83L"></script>`,
   },
   React: {
     label: "React",
-    code: `import { AgentForgeWidget } from "@agentforge/react";
+    code: `import { AgentMaxWidget } from "@agentmax/react";
 
 function App() {
   return (
-    <AgentForgeWidget
+    <AgentMaxWidget
       agentId="ag_9H2KD83L"
       theme="light"
       position="bottom-right"
@@ -52,7 +73,7 @@ function App() {
   Vue: {
     label: "Vue",
     code: `<template>
-  <AgentForgeWidget
+  <AgentMaxWidget
     agent-id="ag_9H2KD83L"
     theme="light"
     position="bottom-right"
@@ -60,15 +81,15 @@ function App() {
 </template>
 
 <script setup>
-import { AgentForgeWidget } from "@agentforge/vue";
+import { AgentMaxWidget } from "@agentmax/vue";
 </script>`,
   },
   Angular: {
     label: "Angular",
-    code: `import { AgentForgeModule } from "@agentforge/angular";
+    code: `import { AgentMaxModule } from "@agentmax/angular";
 
 @NgModule({
-  imports: [AgentForgeModule.forRoot({
+  imports: [AgentMaxModule.forRoot({
     agentId: "ag_9H2KD83L"
   })],
 })
@@ -77,14 +98,14 @@ export class AppModule {}`,
   "Next.js": {
     label: "Next.js",
     code: `// app/layout.tsx
-import { AgentForgeWidget } from "@agentforge/next";
+  import { AgentMaxWidget } from "@agentmax/next";
 
 export default function RootLayout({ children }) {
   return (
     <html>
       <body>
         {children}
-        <AgentForgeWidget agentId="ag_9H2KD83L" />
+        <AgentMaxWidget agentId="ag_9H2KD83L" />
       </body>
     </html>
   );
@@ -94,8 +115,8 @@ export default function RootLayout({ children }) {
     label: "Nuxt",
     code: `// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ["@agentforge/nuxt"],
-  agentforge: {
+  modules: ["@agentmax/nuxt"],
+  agentmax: {
     agentId: "ag_9H2KD83L"
   }
 })`,
@@ -104,7 +125,7 @@ export default defineNuxtConfig({
     label: "WordPress",
     code: `<!-- Add to your theme's footer.php or use a plugin -->
 <script
-  src="https://agentforge.ai/widget.js"
+  src="https://agentmax.ai/widget.js"
   data-agent="ag_9H2KD83L"
   data-position="bottom-right">
 </script>`,
@@ -114,7 +135,7 @@ export default defineNuxtConfig({
     code: `<!-- Paste in Online Store > Themes > Edit code > theme.liquid -->
 <!-- Before the closing </body> tag -->
 <script
-  src="https://agentforge.ai/widget.js"
+  src="https://agentmax.ai/widget.js"
   data-agent="ag_9H2KD83L">
 </script>`,
   },
@@ -139,7 +160,7 @@ export default function EmbedWidgetPage() {
 
   const activeAgent = agents.find((a) => a.id === selectedAgent) ?? agents[0];
 
-  const embedCode = `<script src="https://agentforge.ai/widget.js" data-agent="ag_9H2KD83L"></script>`;
+  const embedCode = `<script src="https://agentmax.ai/widget.js" data-agent="ag_9H2KD83L"></script>`;
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -178,23 +199,33 @@ export default function EmbedWidgetPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {agents.filter((a) => a.status === "active").map((a) => (
-                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                  ))}
+                  {agents
+                    .filter((a) => a.status === "active")
+                    .map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Agent ID</Label>
               <div className="flex items-center gap-2">
-                <code className="px-3 py-2 rounded-lg bg-muted text-sm font-mono">ag_9H2KD83L</code>
+                <code className="px-3 py-2 rounded-lg bg-muted text-sm font-mono">
+                  ag_9H2KD83L
+                </code>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9"
                   onClick={() => handleCopy("ag_9H2KD83L")}
                 >
-                  {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                  {copied ? (
+                    <Check className="h-4 w-4 text-success" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -217,8 +248,17 @@ export default function EmbedWidgetPage() {
                   <code>{embedCode}</code>
                 </pre>
                 <div className="absolute top-2 right-2 flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(embedCode)}>
-                    {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleCopy(embedCode)}
+                  >
+                    {copied ? (
+                      <Check className="h-3.5 w-3.5 text-success" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <RefreshCw className="h-3.5 w-3.5" />
@@ -257,14 +297,28 @@ export default function EmbedWidgetPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Live Widget Preview</CardTitle>
-              <CardDescription>See how the widget will look on your site.</CardDescription>
+              <CardDescription>
+                See how the widget will look on your site.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit">
                 {[
-                  { key: "desktop" as DeviceType, icon: Monitor, label: "Desktop" },
-                  { key: "tablet" as DeviceType, icon: Tablet, label: "Tablet" },
-                  { key: "mobile" as DeviceType, icon: Smartphone, label: "Mobile" },
+                  {
+                    key: "desktop" as DeviceType,
+                    icon: Monitor,
+                    label: "Desktop",
+                  },
+                  {
+                    key: "tablet" as DeviceType,
+                    icon: Tablet,
+                    label: "Tablet",
+                  },
+                  {
+                    key: "mobile" as DeviceType,
+                    icon: Smartphone,
+                    label: "Mobile",
+                  },
                 ].map((d) => (
                   <button
                     key={d.key}
@@ -327,11 +381,15 @@ export default function EmbedWidgetPage() {
                             <Bot className="h-4 w-4 text-white" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-white">{activeAgent.name}</p>
+                            <p className="text-sm font-medium text-white">
+                              {activeAgent.name}
+                            </p>
                             {showOnline && (
                               <div className="flex items-center gap-1">
                                 <div className="h-1.5 w-1.5 rounded-full bg-green-300" />
-                                <span className="text-[10px] text-white/80">Online</span>
+                                <span className="text-[10px] text-white/80">
+                                  Online
+                                </span>
                               </div>
                             )}
                           </div>
@@ -346,8 +404,14 @@ export default function EmbedWidgetPage() {
                         <ScrollArea className="h-[180px]">
                           <div className="p-4 space-y-3">
                             <div className="flex items-start gap-2">
-                              <div className="h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: `${primaryColor}20` }}>
-                                <Bot className="h-3 w-3" style={{ color: primaryColor }} />
+                              <div
+                                className="h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                                style={{ background: `${primaryColor}20` }}
+                              >
+                                <Bot
+                                  className="h-3 w-3"
+                                  style={{ color: primaryColor }}
+                                />
                               </div>
                               <div className="bg-muted rounded-xl rounded-tl-sm px-3 py-2">
                                 <p className="text-xs">{welcomeMsg}</p>
@@ -367,23 +431,41 @@ export default function EmbedWidgetPage() {
 
                             {typingIndicator && (
                               <div className="flex items-start gap-2">
-                                <div className="h-6 w-6 rounded-full flex items-center justify-center shrink-0" style={{ background: `${primaryColor}20` }}>
-                                  <Bot className="h-3 w-3" style={{ color: primaryColor }} />
+                                <div
+                                  className="h-6 w-6 rounded-full flex items-center justify-center shrink-0"
+                                  style={{ background: `${primaryColor}20` }}
+                                >
+                                  <Bot
+                                    className="h-3 w-3"
+                                    style={{ color: primaryColor }}
+                                  />
                                 </div>
                                 <div className="bg-muted rounded-xl rounded-tl-sm px-3 py-2.5 flex items-center gap-1">
                                   <motion.div
                                     animate={{ opacity: [0.4, 1, 0.4] }}
-                                    transition={{ duration: 1.2, repeat: Infinity, delay: 0 }}
+                                    transition={{
+                                      duration: 1.2,
+                                      repeat: Infinity,
+                                      delay: 0,
+                                    }}
                                     className="h-1.5 w-1.5 rounded-full bg-muted-foreground"
                                   />
                                   <motion.div
                                     animate={{ opacity: [0.4, 1, 0.4] }}
-                                    transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
+                                    transition={{
+                                      duration: 1.2,
+                                      repeat: Infinity,
+                                      delay: 0.2,
+                                    }}
                                     className="h-1.5 w-1.5 rounded-full bg-muted-foreground"
                                   />
                                   <motion.div
                                     animate={{ opacity: [0.4, 1, 0.4] }}
-                                    transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
+                                    transition={{
+                                      duration: 1.2,
+                                      repeat: Infinity,
+                                      delay: 0.4,
+                                    }}
                                     className="h-1.5 w-1.5 rounded-full bg-muted-foreground"
                                   />
                                 </div>
@@ -460,7 +542,9 @@ export default function EmbedWidgetPage() {
                       key={c}
                       onClick={() => setPrimaryColor(c)}
                       className={`h-6 w-6 rounded-md border-2 transition-all ${
-                        primaryColor === c ? "border-foreground scale-110" : "border-transparent"
+                        primaryColor === c
+                          ? "border-foreground scale-110"
+                          : "border-transparent"
                       }`}
                       style={{ background: c }}
                     />
@@ -473,7 +557,9 @@ export default function EmbedWidgetPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-xs">Dark Mode</Label>
-                  <p className="text-[11px] text-muted-foreground">Toggle dark theme</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Toggle dark theme
+                  </p>
                 </div>
                 <Switch checked={darkMode} onCheckedChange={setDarkMode} />
               </div>
@@ -481,7 +567,9 @@ export default function EmbedWidgetPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs">Rounded Corners</Label>
-                  <span className="text-xs text-muted-foreground font-mono">{cornerRadius}px</span>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {cornerRadius}px
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -538,7 +626,9 @@ export default function EmbedWidgetPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-xs">Show Online Status</Label>
-                  <p className="text-[11px] text-muted-foreground">Display availability indicator</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Display availability indicator
+                  </p>
                 </div>
                 <Switch checked={showOnline} onCheckedChange={setShowOnline} />
               </div>
@@ -546,9 +636,14 @@ export default function EmbedWidgetPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-xs">Typing Indicator</Label>
-                  <p className="text-[11px] text-muted-foreground">Show agent typing animation</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Show agent typing animation
+                  </p>
                 </div>
-                <Switch checked={typingIndicator} onCheckedChange={setTypingIndicator} />
+                <Switch
+                  checked={typingIndicator}
+                  onCheckedChange={setTypingIndicator}
+                />
               </div>
             </CardContent>
           </Card>

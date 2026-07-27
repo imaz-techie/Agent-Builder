@@ -4,13 +4,7 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Sparkles,
-  Eye,
-  EyeOff,
-  Loader2,
-  Check,
-} from "lucide-react";
+import { Sparkles, Eye, EyeOff, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,7 +109,7 @@ export default function LoginPage() {
             <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold gradient-text">AgentForge AI</span>
+            <span className="text-lg font-bold gradient-text">AgentMax AI</span>
           </Link>
 
           <div className="mb-8">
@@ -133,8 +127,12 @@ export default function LoginPage() {
                 className="gap-2 h-11"
                 onClick={() => setLoading(true)}
               >
-                <div className={`h-5 w-5 rounded-full ${provider.color} flex items-center justify-center`}>
-                  <span className="text-[10px] font-bold text-white">{provider.letter}</span>
+                <div
+                  className={`h-5 w-5 rounded-full ${provider.color} flex items-center justify-center`}
+                >
+                  <span className="text-[10px] font-bold text-white">
+                    {provider.letter}
+                  </span>
                 </div>
                 <span className="text-sm">{provider.name}</span>
               </Button>
@@ -156,10 +154,16 @@ export default function LoginPage() {
                 type="email"
                 placeholder="you@company.com"
                 {...register("email")}
-                className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                className={
+                  errors.email
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
               />
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -200,7 +204,9 @@ export default function LoginPage() {
                 </Button>
               </div>
               {errors.password && (
-                <p className="text-xs text-destructive">{errors.password.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
@@ -216,7 +222,9 @@ export default function LoginPage() {
                 >
                   {rememberMe && <Check className="h-3 w-3 text-white" />}
                 </div>
-                <span className="text-sm text-muted-foreground">Remember me</span>
+                <span className="text-sm text-muted-foreground">
+                  Remember me
+                </span>
               </label>
             </div>
 

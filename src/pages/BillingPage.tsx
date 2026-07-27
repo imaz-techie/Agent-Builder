@@ -24,7 +24,7 @@ import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 const plans = [
   {
     name: "Starter",
-    price: 49,
+    price: 9,
     description: "For individuals and small teams getting started.",
     features: [
       "5 agents",
@@ -38,7 +38,7 @@ const plans = [
   },
   {
     name: "Professional",
-    price: 149,
+    price: 49,
     description: "For growing teams that need more power and flexibility.",
     features: [
       "25 agents",
@@ -55,7 +55,7 @@ const plans = [
   },
   {
     name: "Enterprise",
-    price: 499,
+    price: 99,
     description: "For organizations with advanced needs and compliance.",
     features: [
       "Unlimited agents",

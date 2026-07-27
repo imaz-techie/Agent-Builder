@@ -36,16 +36,21 @@ export default function ForgotPasswordPage() {
             <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <Sparkles className="h-4.5 w-4.5 text-white" />
             </div>
-            <span className="text-lg font-bold gradient-text">AgentForge</span>
+            <span className="text-lg font-bold gradient-text">AgentMax</span>
           </Link>
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
-            {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            {theme === "light" ? (
+              <Moon className="h-5 w-5" />
+            ) : (
+              <Sun className="h-5 w-5" />
+            )}
           </Button>
         </div>
 
         <h1 className="text-2xl font-bold mb-1">Reset your password</h1>
         <p className="text-muted-foreground text-sm mb-6">
-          Enter your email and we&apos;ll send you a link to reset your password.
+          Enter your email and we&apos;ll send you a link to reset your
+          password.
         </p>
 
         {sent ? (
@@ -56,7 +61,8 @@ export default function ForgotPasswordPage() {
             <div>
               <h2 className="font-semibold mb-1">Check your email</h2>
               <p className="text-sm text-muted-foreground">
-                We&apos;ve sent a password reset link to <span className="font-medium text-foreground">{email}</span>
+                We&apos;ve sent a password reset link to{" "}
+                <span className="font-medium text-foreground">{email}</span>
               </p>
             </div>
             <Button variant="outline" className="w-full" asChild>
@@ -80,9 +86,16 @@ export default function ForgotPasswordPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset link"}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Send reset link"
+              )}
             </Button>
-            <Link to="/login" className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              to="/login"
+              className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               <ArrowLeft className="h-3.5 w-3.5 inline mr-1" />
               Back to sign in
             </Link>

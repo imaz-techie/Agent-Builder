@@ -21,7 +21,13 @@ import {
   MapPin,
   X,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -217,20 +223,24 @@ export default function SettingsPage() {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Workspace Settings</CardTitle>
-                  <CardDescription>Manage your workspace configuration.</CardDescription>
+                  <CardTitle className="text-base">
+                    Workspace Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your workspace configuration.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Workspace Name</Label>
-                      <Input defaultValue="AgentForge Workspace" />
+                      <Input defaultValue="AgentMax Workspace" />
                     </div>
                     <div className="space-y-2">
                       <Label>Workspace URL</Label>
                       <div className="flex">
                         <span className="inline-flex items-center rounded-l-lg border border-r-0 border-input bg-muted px-3 text-sm text-muted-foreground">
-                          app.agentforge.ai/
+                          app.agentmax.ai/
                         </span>
                         <Input
                           defaultValue="my-workspace"
@@ -251,9 +261,15 @@ export default function SettingsPage() {
                           <SelectItem value="est">Eastern Time (ET)</SelectItem>
                           <SelectItem value="cst">Central Time (CT)</SelectItem>
                           <SelectItem value="pst">Pacific Time (PT)</SelectItem>
-                          <SelectItem value="cet">Central European Time (CET)</SelectItem>
-                          <SelectItem value="jst">Japan Standard Time (JST)</SelectItem>
-                          <SelectItem value="ist">India Standard Time (IST)</SelectItem>
+                          <SelectItem value="cet">
+                            Central European Time (CET)
+                          </SelectItem>
+                          <SelectItem value="jst">
+                            Japan Standard Time (JST)
+                          </SelectItem>
+                          <SelectItem value="ist">
+                            India Standard Time (IST)
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -289,7 +305,9 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Brand Identity</CardTitle>
-                  <CardDescription>Customize your workspace branding and visual identity.</CardDescription>
+                  <CardDescription>
+                    Customize your workspace branding and visual identity.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
@@ -323,15 +341,20 @@ export default function SettingsPage() {
                           className="font-mono text-sm w-32"
                         />
                         <div className="flex gap-1.5">
-                          {["#6366f1", "#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#ec4899"].map(
-                            (color) => (
-                              <button
-                                key={color}
-                                className="h-6 w-6 rounded-full border-2 border-border hover:scale-110 transition-transform"
-                                style={{ backgroundColor: color }}
-                              />
-                            )
-                          )}
+                          {[
+                            "#6366f1",
+                            "#3b82f6",
+                            "#22c55e",
+                            "#f59e0b",
+                            "#ef4444",
+                            "#ec4899",
+                          ].map((color) => (
+                            <button
+                              key={color}
+                              className="h-6 w-6 rounded-full border-2 border-border hover:scale-110 transition-transform"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -350,15 +373,20 @@ export default function SettingsPage() {
                           className="font-mono text-sm w-32"
                         />
                         <div className="flex gap-1.5">
-                          {["#a855f7", "#8b5cf6", "#06b6d4", "#14b8a6", "#f97316", "#e11d48"].map(
-                            (color) => (
-                              <button
-                                key={color}
-                                className="h-6 w-6 rounded-full border-2 border-border hover:scale-110 transition-transform"
-                                style={{ backgroundColor: color }}
-                              />
-                            )
-                          )}
+                          {[
+                            "#a855f7",
+                            "#8b5cf6",
+                            "#06b6d4",
+                            "#14b8a6",
+                            "#f97316",
+                            "#e11d48",
+                          ].map((color) => (
+                            <button
+                              key={color}
+                              className="h-6 w-6 rounded-full border-2 border-border hover:scale-110 transition-transform"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -374,7 +402,8 @@ export default function SettingsPage() {
                       defaultValue={`:root {\n  --brand-radius: 0.75rem;\n  --brand-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);\n}`}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Advanced: Override default styles with custom CSS variables.
+                      Advanced: Override default styles with custom CSS
+                      variables.
                     </p>
                   </div>
                 </CardContent>
@@ -392,7 +421,9 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Widget Appearance</CardTitle>
-                  <CardDescription>Customize how the chat widget appears to your users.</CardDescription>
+                  <CardDescription>
+                    Customize how the chat widget appears to your users.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -403,8 +434,12 @@ export default function SettingsPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                          <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                          <SelectItem value="bottom-right">
+                            Bottom Right
+                          </SelectItem>
+                          <SelectItem value="bottom-left">
+                            Bottom Left
+                          </SelectItem>
                           <SelectItem value="top-right">Top Right</SelectItem>
                           <SelectItem value="top-left">Top Left</SelectItem>
                         </SelectContent>
@@ -446,7 +481,9 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Working Hours</CardTitle>
-                  <CardDescription>Define when agents are available for live chat.</CardDescription>
+                  <CardDescription>
+                    Define when agents are available for live chat.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -460,11 +497,15 @@ export default function SettingsPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Start Time</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Start Time
+                      </Label>
                       <Input type="time" defaultValue="09:00" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">End Time</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        End Time
+                      </Label>
                       <Input type="time" defaultValue="18:00" />
                     </div>
                   </div>
@@ -472,7 +513,7 @@ export default function SettingsPage() {
                     <Label>Support Email</Label>
                     <Input
                       type="email"
-                      defaultValue="support@agentforge.ai"
+                      defaultValue="support@agentmax.ai"
                       placeholder="support@company.com"
                     />
                   </div>
@@ -490,15 +531,21 @@ export default function SettingsPage() {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Email Notifications</CardTitle>
-                  <CardDescription>Choose which email notifications you'd like to receive.</CardDescription>
+                  <CardTitle className="text-base">
+                    Email Notifications
+                  </CardTitle>
+                  <CardDescription>
+                    Choose which email notifications you'd like to receive.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-1">
                   {notificationSettings.map((setting, i) => (
                     <div
                       key={setting.id}
                       className={`flex items-center justify-between py-4 ${
-                        i < notificationSettings.length - 1 ? "border-b border-border" : ""
+                        i < notificationSettings.length - 1
+                          ? "border-b border-border"
+                          : ""
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -506,8 +553,12 @@ export default function SettingsPage() {
                           <setting.icon className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <Label className="text-sm font-medium">{setting.label}</Label>
-                          <p className="text-xs text-muted-foreground">{setting.description}</p>
+                          <Label className="text-sm font-medium">
+                            {setting.label}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {setting.description}
+                          </p>
                         </div>
                       </div>
                       <Switch defaultChecked={setting.enabled} />
@@ -518,8 +569,12 @@ export default function SettingsPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Real-time Notifications</CardTitle>
-                  <CardDescription>Configure in-app notification preferences.</CardDescription>
+                  <CardTitle className="text-base">
+                    Real-time Notifications
+                  </CardTitle>
+                  <CardDescription>
+                    Configure in-app notification preferences.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -565,18 +620,28 @@ export default function SettingsPage() {
             >
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Two-Factor Authentication</CardTitle>
-                  <CardDescription>Add an extra layer of security to your account.</CardDescription>
+                  <CardTitle className="text-base">
+                    Two-Factor Authentication
+                  </CardTitle>
+                  <CardDescription>
+                    Add an extra layer of security to your account.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                        twoFAEnabled ? "bg-success/10" : "bg-muted"
-                      }`}>
-                        <Shield className={`h-5 w-5 ${
-                          twoFAEnabled ? "text-success" : "text-muted-foreground"
-                        }`} />
+                      <div
+                        className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                          twoFAEnabled ? "bg-success/10" : "bg-muted"
+                        }`}
+                      >
+                        <Shield
+                          className={`h-5 w-5 ${
+                            twoFAEnabled
+                              ? "text-success"
+                              : "text-muted-foreground"
+                          }`}
+                        />
                       </div>
                       <div>
                         <p className="text-sm font-medium">
@@ -604,7 +669,9 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Active Sessions</CardTitle>
-                  <CardDescription>Manage devices that are currently signed in to your account.</CardDescription>
+                  <CardDescription>
+                    Manage devices that are currently signed in to your account.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -612,7 +679,9 @@ export default function SettingsPage() {
                       <div
                         key={session.id}
                         className={`flex items-center justify-between py-3 ${
-                          i < sessions.length - 1 ? "border-b border-border" : ""
+                          i < sessions.length - 1
+                            ? "border-b border-border"
+                            : ""
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -623,15 +692,21 @@ export default function SettingsPage() {
                           )}
                           <div>
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium">{session.device}</p>
+                              <p className="text-sm font-medium">
+                                {session.device}
+                              </p>
                               {session.current && (
-                                <Badge variant="secondary" className="text-[10px]">
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[10px]"
+                                >
                                   Current
                                 </Badge>
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {session.browser} &middot; {session.ip} &middot; {session.location}
+                              {session.browser} &middot; {session.ip} &middot;{" "}
+                              {session.location}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Last active: {session.lastActive}
@@ -639,7 +714,11 @@ export default function SettingsPage() {
                           </div>
                         </div>
                         {!session.current && (
-                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                          >
                             Revoke
                           </Button>
                         )}
@@ -652,7 +731,9 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">IP Whitelist</CardTitle>
-                  <CardDescription>Restrict API access to specific IP addresses or CIDR ranges.</CardDescription>
+                  <CardDescription>
+                    Restrict API access to specific IP addresses or CIDR ranges.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">
@@ -664,7 +745,11 @@ export default function SettingsPage() {
                         if (e.key === "Enter") addIP();
                       }}
                     />
-                    <Button variant="outline" onClick={addIP} className="shrink-0">
+                    <Button
+                      variant="outline"
+                      onClick={addIP}
+                      className="shrink-0"
+                    >
                       Add IP
                     </Button>
                   </div>
@@ -704,7 +789,8 @@ export default function SettingsPage() {
                     Danger Zone
                   </CardTitle>
                   <CardDescription>
-                    Irreversible and destructive actions. Proceed with extreme caution.
+                    Irreversible and destructive actions. Proceed with extreme
+                    caution.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -713,8 +799,9 @@ export default function SettingsPage() {
                       <div>
                         <p className="text-sm font-medium">Delete Workspace</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Permanently delete this workspace and all its data including agents,
-                          knowledge bases, and conversation history.
+                          Permanently delete this workspace and all its data
+                          including agents, knowledge bases, and conversation
+                          history.
                         </p>
                       </div>
                       <Button
@@ -729,22 +816,29 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
 
-              <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <Dialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+              >
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle className="text-destructive">
                       Delete Workspace
                     </DialogTitle>
                     <DialogDescription>
-                      This action is permanent and cannot be undone. All data including agents,
-                      knowledge bases, conversations, and settings will be permanently deleted.
+                      This action is permanent and cannot be undone. All data
+                      including agents, knowledge bases, conversations, and
+                      settings will be permanently deleted.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
                       <p className="text-sm text-muted-foreground">
-                        Please type <span className="font-bold text-foreground">DELETE</span> to
-                        confirm.
+                        Please type{" "}
+                        <span className="font-bold text-foreground">
+                          DELETE
+                        </span>{" "}
+                        to confirm.
                       </p>
                     </div>
                     <Input

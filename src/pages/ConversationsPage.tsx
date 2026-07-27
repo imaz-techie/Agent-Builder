@@ -30,33 +30,118 @@ interface ChatMessage {
 
 const chatMessages: Record<string, ChatMessage[]> = {
   conv_001: [
-    { id: "m1", sender: "user", text: "I need help with my recent order #4521, it hasn't arrived yet.", time: "2:30 PM" },
-    { id: "m2", sender: "agent", text: "I'd be happy to help you with order #4521. Let me look that up for you right away.", time: "2:30 PM" },
-    { id: "m3", sender: "agent", text: "I can see your order was shipped on July 18th via FedEx. The tracking shows it's currently in transit and expected to arrive by tomorrow, July 24th.", time: "2:31 PM" },
-    { id: "m4", sender: "user", text: "Oh okay, that's reassuring. Can I get a tracking number?", time: "2:32 PM" },
-    { id: "m5", sender: "agent", text: "Of course! Your tracking number is FX-789456123. You can track it at fedex.com. Is there anything else I can help you with?", time: "2:32 PM" },
-    { id: "m6", sender: "user", text: "No that's great, thank you!", time: "2:33 PM" },
+    {
+      id: "m1",
+      sender: "user",
+      text: "I need help with my recent order #4521, it hasn't arrived yet.",
+      time: "2:30 PM",
+    },
+    {
+      id: "m2",
+      sender: "agent",
+      text: "I'd be happy to help you with order #4521. Let me look that up for you right away.",
+      time: "2:30 PM",
+    },
+    {
+      id: "m3",
+      sender: "agent",
+      text: "I can see your order was shipped on July 18th via FedEx. The tracking shows it's currently in transit and expected to arrive by tomorrow, July 24th.",
+      time: "2:31 PM",
+    },
+    {
+      id: "m4",
+      sender: "user",
+      text: "Oh okay, that's reassuring. Can I get a tracking number?",
+      time: "2:32 PM",
+    },
+    {
+      id: "m5",
+      sender: "agent",
+      text: "Of course! Your tracking number is FX-789456123. You can track it at fedex.com. Is there anything else I can help you with?",
+      time: "2:32 PM",
+    },
+    {
+      id: "m6",
+      sender: "user",
+      text: "No that's great, thank you!",
+      time: "2:33 PM",
+    },
   ],
   conv_002: [
-    { id: "m1", sender: "user", text: "I'm interested in the Enterprise plan. Can you walk me through pricing?", time: "2:12 PM" },
-    { id: "m2", sender: "agent", text: "Great choice! The Enterprise plan starts at $2,499/month and includes unlimited agents, priority support, and advanced analytics.", time: "2:13 PM" },
-    { id: "m3", sender: "user", text: "What about per-seat pricing?", time: "2:14 PM" },
-    { id: "m4", sender: "agent", text: "Enterprise includes up to 50 team seats. Additional seats are $25/month each. Would you like me to prepare a custom quote?", time: "2:14 PM" },
+    {
+      id: "m1",
+      sender: "user",
+      text: "I'm interested in the Enterprise plan. Can you walk me through pricing?",
+      time: "2:12 PM",
+    },
+    {
+      id: "m2",
+      sender: "agent",
+      text: "Great choice! The Enterprise plan starts at $2,499/month and includes unlimited agents, priority support, and advanced analytics.",
+      time: "2:13 PM",
+    },
+    {
+      id: "m3",
+      sender: "user",
+      text: "What about per-seat pricing?",
+      time: "2:14 PM",
+    },
+    {
+      id: "m4",
+      sender: "agent",
+      text: "Enterprise includes up to 50 team seats. Additional seats are $25/month each. Would you like me to prepare a custom quote?",
+      time: "2:14 PM",
+    },
   ],
   conv_004: [
-    { id: "m1", sender: "user", text: "My subscription was charged twice this month, can you help?", time: "1:42 PM" },
-    { id: "m2", sender: "agent", text: "I'm sorry to hear about the duplicate charge. Let me investigate this immediately.", time: "1:43 PM" },
-    { id: "m3", sender: "agent", text: "I can confirm there were two charges on July 15th. I've initiated a refund for the duplicate charge. You should see it within 3-5 business days.", time: "1:44 PM" },
+    {
+      id: "m1",
+      sender: "user",
+      text: "My subscription was charged twice this month, can you help?",
+      time: "1:42 PM",
+    },
+    {
+      id: "m2",
+      sender: "agent",
+      text: "I'm sorry to hear about the duplicate charge. Let me investigate this immediately.",
+      time: "1:43 PM",
+    },
+    {
+      id: "m3",
+      sender: "agent",
+      text: "I can confirm there were two charges on July 15th. I've initiated a refund for the duplicate charge. You should see it within 3-5 business days.",
+      time: "1:44 PM",
+    },
   ],
   conv_007: [
-    { id: "m1", sender: "user", text: "Write a LinkedIn post about our new AI product launch.", time: "12:28 PM" },
-    { id: "m2", sender: "agent", text: "Here's a draft for your LinkedIn post:\n\n?? Excited to announce the launch of AgentForge AI - the next generation of intelligent automation. Build, deploy, and scale AI agents in minutes, not months.\n\nKey features:\n- No-code agent builder\n- Enterprise-grade security\n- Multi-model support\n- Real-time analytics\n\nReady to transform your workflow? Link in comments!", time: "12:29 PM" },
+    {
+      id: "m1",
+      sender: "user",
+      text: "Write a LinkedIn post about our new AI product launch.",
+      time: "12:28 PM",
+    },
+    {
+      id: "m2",
+      sender: "agent",
+      text: "Here's a draft for your LinkedIn post:\n\n?? Excited to announce the launch of AgentMax AI - the next generation of intelligent automation. Build, deploy, and scale AI agents in minutes, not months.\n\nKey features:\n- No-code agent builder\n- Enterprise-grade security\n- Multi-model support\n- Real-time analytics\n\nReady to transform your workflow? Link in comments!",
+      time: "12:29 PM",
+    },
   ],
 };
 
 const defaultMessages: ChatMessage[] = [
-  { id: "m1", sender: "user", text: "Hello, I need some assistance.", time: "1:00 PM" },
-  { id: "m2", sender: "agent", text: "Hi there! I'd be happy to help. What can I assist you with today?", time: "1:00 PM" },
+  {
+    id: "m1",
+    sender: "user",
+    text: "Hello, I need some assistance.",
+    time: "1:00 PM",
+  },
+  {
+    id: "m2",
+    sender: "agent",
+    text: "Hi there! I'd be happy to help. What can I assist you with today?",
+    time: "1:00 PM",
+  },
 ];
 
 const statusFilterColors: Record<string, string> = {
@@ -68,25 +153,31 @@ const statusFilterColors: Record<string, string> = {
 export default function ConversationsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterTab>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    conversations[0]?.id ?? null,
+  );
   const [chatInput, setChatInput] = useState("");
 
   const filtered = conversations.filter(
     (c) =>
       (filter === "all" || c.status === filter) &&
       (c.userName.toLowerCase().includes(search.toLowerCase()) ||
-        c.agentName.toLowerCase().includes(search.toLowerCase()))
+        c.agentName.toLowerCase().includes(search.toLowerCase())),
   );
 
   const selectedConv = conversations.find((c) => c.id === selectedId);
-  const messages = selectedId ? (chatMessages[selectedId] ?? defaultMessages) : defaultMessages;
+  const messages = selectedId
+    ? (chatMessages[selectedId] ?? defaultMessages)
+    : defaultMessages;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">Conversations</h1>
-          <Badge variant="outline" className="text-xs">{conversations.length}</Badge>
+          <Badge variant="outline" className="text-xs">
+            {conversations.length}
+          </Badge>
         </div>
       </div>
 
@@ -136,20 +227,29 @@ export default function ConversationsPage() {
                 >
                   <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <span className="text-[10px] font-semibold text-muted-foreground">
-                      {conv.userName.split(" ").map((n) => n[0]).join("")}
+                      {conv.userName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">{conv.userName}</span>
+                      <span className="text-sm font-medium truncate">
+                        {conv.userName}
+                      </span>
                       {conv.status !== "resolved" && (
                         <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <Badge variant="outline" className="text-[9px] py-0 h-4">{conv.agentName}</Badge>
+                      <Badge variant="outline" className="text-[9px] py-0 h-4">
+                        {conv.agentName}
+                      </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{conv.messagePreview}</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                      {conv.messagePreview}
+                    </p>
                     <div className="flex items-center gap-2 mt-1.5">
                       <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                         <Clock className="h-2.5 w-2.5" />
@@ -175,14 +275,21 @@ export default function ConversationsPage() {
               <div className="px-4 py-3 border-b border-border flex items-center gap-3">
                 <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center">
                   <span className="text-xs font-semibold text-muted-foreground">
-                    {selectedConv.userName.split(" ").map((n) => n[0]).join("")}
+                    {selectedConv.userName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{selectedConv.userName}</p>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px]">{selectedConv.agentName}</Badge>
-                    <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${statusFilterColors[selectedConv.status]}`}>
+                    <Badge variant="outline" className="text-[10px]">
+                      {selectedConv.agentName}
+                    </Badge>
+                    <div
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${statusFilterColors[selectedConv.status]}`}
+                    >
                       {selectedConv.status}
                     </div>
                   </div>
@@ -211,7 +318,9 @@ export default function ConversationsPage() {
                       transition={{ duration: 0.2, delay: i * 0.05 }}
                       className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      <div className={`flex items-end gap-2 max-w-[80%] ${msg.sender === "user" ? "flex-row-reverse" : ""}`}>
+                      <div
+                        className={`flex items-end gap-2 max-w-[80%] ${msg.sender === "user" ? "flex-row-reverse" : ""}`}
+                      >
                         {msg.sender === "agent" && (
                           <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                             <Bot className="h-3.5 w-3.5 text-primary" />
@@ -227,7 +336,9 @@ export default function ConversationsPage() {
                           >
                             <p className="whitespace-pre-line">{msg.text}</p>
                           </div>
-                          <p className="text-[10px] text-muted-foreground mt-1 px-1">{msg.time}</p>
+                          <p className="text-[10px] text-muted-foreground mt-1 px-1">
+                            {msg.time}
+                          </p>
                         </div>
                       </div>
                     </motion.div>
@@ -243,7 +354,10 @@ export default function ConversationsPage() {
                     onChange={(e) => setChatInput(e.target.value)}
                     className="h-10 text-sm"
                   />
-                  <Button size="icon" className="h-10 w-10 shrink-0 bg-gradient-primary text-white">
+                  <Button
+                    size="icon"
+                    className="h-10 w-10 shrink-0 bg-gradient-primary text-white"
+                  >
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>

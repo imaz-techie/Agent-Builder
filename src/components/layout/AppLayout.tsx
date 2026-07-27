@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, NavLink, useLocation } from "react-router-dom";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -73,9 +73,7 @@ interface NavGroup {
 const navGroups: NavGroup[] = [
   {
     label: "Overview",
-    items: [
-      { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-    ],
+    items: [{ label: "Dashboard", path: "/dashboard", icon: LayoutDashboard }],
   },
   {
     label: "AI Tools",
@@ -96,7 +94,12 @@ const navGroups: NavGroup[] = [
   {
     label: "Monitor",
     items: [
-      { label: "Conversations", path: "/conversations", icon: MessageSquare, badge: "12" },
+      {
+        label: "Conversations",
+        path: "/conversations",
+        icon: MessageSquare,
+        badge: "12",
+      },
       { label: "Analytics", path: "/analytics", icon: BarChart3 },
     ],
   },
@@ -131,7 +134,7 @@ function SidebarNavItem({
               collapsed && "justify-center px-0 py-2.5",
               isActive
                 ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary shadow-sm"
-                : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
             )
           }
         >
@@ -147,7 +150,9 @@ function SidebarNavItem({
               <item.icon
                 className={cn(
                   "relative z-10 h-[18px] w-[18px] shrink-0 transition-colors duration-200",
-                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground group-hover:text-foreground",
                 )}
               />
               <AnimatePresence mode="wait">
@@ -256,8 +261,12 @@ function MobileSidebar({
                   <Sparkles className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[15px] font-bold gradient-text leading-tight">AgentForge</span>
-                  <span className="text-[10px] text-muted-foreground font-medium">AI Platform</span>
+                  <span className="text-[15px] font-bold gradient-text leading-tight">
+                    AgentMax
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    AI Platform
+                  </span>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={onClose}>
@@ -267,7 +276,11 @@ function MobileSidebar({
             <ScrollArea className="flex-1 px-3 py-3">
               <div className="flex flex-col gap-4">
                 {navGroups.map((group) => (
-                  <SidebarNavGroup key={group.label} group={group} collapsed={false} />
+                  <SidebarNavGroup
+                    key={group.label}
+                    group={group}
+                    collapsed={false}
+                  />
                 ))}
               </div>
             </ScrollArea>
@@ -279,6 +292,7 @@ function MobileSidebar({
 }
 
 function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -308,11 +322,15 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
       <div className="ml-auto flex items-center gap-1">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="hidden sm:flex gap-2 h-9 px-2.5 rounded-xl">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden sm:flex gap-2 h-9 px-2.5 rounded-xl"
+            >
               <div className="h-5 w-5 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                 <Sparkles className="h-3 w-3 text-white" />
               </div>
-              <span className="text-sm font-medium">AgentForge</span>
+              <span className="text-sm font-medium">AgentMax</span>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
@@ -323,7 +341,7 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
               <div className="h-5 w-5 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                 <Sparkles className="h-3 w-3 text-white" />
               </div>
-              AgentForge Workspace
+              AgentMax Workspace
             </DropdownMenuItem>
             <DropdownMenuItem className="gap-2.5">
               <div className="h-5 w-5 rounded-md bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
@@ -341,7 +359,11 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative h-9 w-9 rounded-xl"
+            >
               <Bell className="h-[18px] w-[18px]" />
               {unreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1 ring-2 ring-background">
@@ -359,7 +381,10 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             {notifications.slice(0, 5).map((notif) => (
-              <DropdownMenuItem key={notif.id} className="flex flex-col items-start gap-1.5 py-2.5 px-3 cursor-pointer">
+              <DropdownMenuItem
+                key={notif.id}
+                className="flex flex-col items-start gap-1.5 py-2.5 px-3 cursor-pointer"
+              >
                 <div className="flex items-center gap-2 w-full">
                   <div
                     className={cn(
@@ -368,12 +393,16 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
                       notif.type === "warning" && "bg-warning",
                       notif.type === "success" && "bg-success",
                       notif.type === "info" && "bg-info",
-                      notif.read && "bg-muted-foreground/30"
+                      notif.read && "bg-muted-foreground/30",
                     )}
                   />
-                  <span className="text-sm font-medium truncate">{notif.title}</span>
+                  <span className="text-sm font-medium truncate">
+                    {notif.title}
+                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-1 pl-4">{notif.message}</p>
+                <p className="text-xs text-muted-foreground line-clamp-1 pl-4">
+                  {notif.message}
+                </p>
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
@@ -383,7 +412,12 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9 rounded-xl">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          className="h-9 w-9 rounded-xl"
+        >
           {theme === "light" ? (
             <Moon className="h-[18px] w-[18px]" />
           ) : (
@@ -391,19 +425,30 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
           )}
         </Button>
 
-        <Separator orientation="vertical" className="h-6 mx-1 hidden sm:block" />
+        <Separator
+          orientation="vertical"
+          className="h-6 mx-1 hidden sm:block"
+        />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2 px-1.5 h-9 rounded-xl">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 px-1.5 h-9 rounded-xl"
+            >
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-[11px] font-bold">
                   SC
                 </AvatarFallback>
               </Avatar>
               <div className="hidden sm:flex flex-col items-start">
-                <span className="text-sm font-medium leading-tight">Sarah Chen</span>
-                <span className="text-[10px] text-muted-foreground leading-tight">Admin</span>
+                <span className="text-sm font-medium leading-tight">
+                  Sarah Chen
+                </span>
+                <span className="text-[10px] text-muted-foreground leading-tight">
+                  Admin
+                </span>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
             </Button>
@@ -412,7 +457,9 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
             <DropdownMenuLabel>
               <div className="flex flex-col gap-0.5">
                 <span className="font-medium">Sarah Chen</span>
-                <span className="text-xs font-normal text-muted-foreground">sarah@agentforge.ai</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  sarah@agentmax.ai
+                </span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -429,7 +476,10 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
               Billing
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => navigate("/login")}
+            >
               <LogOut className="h-4 w-4 mr-2.5" />
               Logout
             </DropdownMenuItem>
@@ -452,7 +502,11 @@ export default function AppLayout() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const sidebarWidth = isMobile ? 0 : collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
+  const sidebarWidth = isMobile
+    ? 0
+    : collapsed
+      ? SIDEBAR_COLLAPSED_WIDTH
+      : SIDEBAR_WIDTH;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -466,7 +520,7 @@ export default function AppLayout() {
           <div
             className={cn(
               "flex items-center border-b border-border/50 shrink-0 h-14",
-              collapsed ? "justify-center px-2" : "px-4 gap-3"
+              collapsed ? "justify-center px-2" : "px-4 gap-3",
             )}
           >
             <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
@@ -481,8 +535,12 @@ export default function AppLayout() {
                   transition={{ duration: 0.2 }}
                   className="whitespace-nowrap overflow-hidden"
                 >
-                  <span className="text-[15px] font-bold gradient-text">AgentForge</span>
-                  <span className="text-[10px] text-muted-foreground font-medium ml-1.5">AI</span>
+                  <span className="text-[15px] font-bold gradient-text">
+                    AgentMax
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-medium ml-1.5">
+                    AI
+                  </span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -492,7 +550,11 @@ export default function AppLayout() {
           <ScrollArea className="flex-1 px-2.5 py-3">
             <div className="flex flex-col gap-4">
               {navGroups.map((group) => (
-                <SidebarNavGroup key={group.label} group={group} collapsed={collapsed} />
+                <SidebarNavGroup
+                  key={group.label}
+                  group={group}
+                  collapsed={collapsed}
+                />
               ))}
             </div>
           </ScrollArea>
@@ -505,7 +567,9 @@ export default function AppLayout() {
                 <div className="relative">
                   <div className="flex items-center gap-2 mb-2">
                     <Crown className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-semibold text-primary">Pro Plan</span>
+                    <span className="text-xs font-semibold text-primary">
+                      Pro Plan
+                    </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed mb-2.5">
                     Unlock unlimited agents and priority support
@@ -528,7 +592,7 @@ export default function AppLayout() {
                 <div
                   className={cn(
                     "flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors hover:bg-muted/70 cursor-pointer",
-                    collapsed && "justify-center px-0"
+                    collapsed && "justify-center px-0",
                   )}
                 >
                   <div className="relative shrink-0">
@@ -549,10 +613,10 @@ export default function AppLayout() {
                         className="flex flex-col overflow-hidden min-w-0 flex-1"
                       >
                         <span className="text-[13px] font-medium leading-tight whitespace-nowrap truncate">
-                          Sarah Chen
+                          Imaz
                         </span>
                         <span className="text-[11px] text-muted-foreground leading-tight whitespace-nowrap truncate">
-                          sarah@agentforge.ai
+                          Imaz@agentmax.ai
                         </span>
                       </motion.div>
                     )}
@@ -561,7 +625,7 @@ export default function AppLayout() {
               </TooltipTrigger>
               {collapsed && (
                 <TooltipContent side="right" sideOffset={8}>
-                  Sarah Chen
+                  Imaz
                 </TooltipContent>
               )}
             </Tooltip>
@@ -576,7 +640,7 @@ export default function AppLayout() {
                   size={collapsed ? "icon" : "sm"}
                   className={cn(
                     "w-full h-8 rounded-xl text-muted-foreground hover:text-foreground",
-                    collapsed ? "w-9" : "justify-start gap-2 px-2.5"
+                    collapsed ? "w-9" : "justify-start gap-2 px-2.5",
                   )}
                   onClick={() => setCollapsed(!collapsed)}
                 >

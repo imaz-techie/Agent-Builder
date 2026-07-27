@@ -31,15 +31,36 @@ import {
 import { cn } from "@/lib/utils";
 
 const versionHistory = [
-  { version: "v3", label: "Current", time: "2 min ago", changes: "Added company variable" },
-  { version: "v2", label: null, time: "1 hour ago", changes: "Refined tone instructions" },
-  { version: "v1", label: null, time: "Yesterday", changes: "Initial prompt draft" },
+  {
+    version: "v3",
+    label: "Current",
+    time: "2 min ago",
+    changes: "Added company variable",
+  },
+  {
+    version: "v2",
+    label: null,
+    time: "1 hour ago",
+    changes: "Refined tone instructions",
+  },
+  {
+    version: "v1",
+    label: null,
+    time: "Yesterday",
+    changes: "Initial prompt draft",
+  },
   { version: "v0", label: null, time: "2 days ago", changes: "Blank template" },
 ];
 
-const variables = ["{{user_name}}", "{{agent_name}}", "{{date}}", "{{context}}", "{{company}}"];
+const variables = [
+  "{{user_name}}",
+  "{{agent_name}}",
+  "{{date}}",
+  "{{context}}",
+  "{{company}}",
+];
 
-const defaultPrompt = `You are a helpful customer support agent for AgentForge AI. Your role is to assist users with their questions about our platform, troubleshoot issues, and guide them through features.
+const defaultPrompt = `You are a helpful customer support agent for AgentMax AI. Your role is to assist users with their questions about our platform, troubleshoot issues, and guide them through features.
 
 ## Core Guidelines
 
@@ -62,7 +83,7 @@ Conversation context: {{context}}
 
 Always ensure the customer feels heard and valued. Your goal is to resolve issues on the first contact whenever possible.`;
 
-const mockOutput = `Hello {{user_name}}! Welcome to AgentForge AI support. I'm {{agent_name}}, and I'm here to help you today.
+const mockOutput = `Hello {{user_name}}! Welcome to AgentMax AI support. I'm {{agent_name}}, and I'm here to help you today.
 
 I can see you have a question about our platform. Let me look into that for you right away.
 
@@ -74,10 +95,12 @@ Based on your account details, I can help you with:
 
 Could you tell me more about what specific issue you're experiencing? The more details you can provide, the better I can assist you.
 
-In the meantime, you might find our quick-start guide helpful: https://docs.agentforge.ai/getting-started`;
+In the meantime, you might find our quick-start guide helpful: https://docs.agentmax.ai/getting-started`;
 
 export default function PromptStudioPage() {
-  const [promptName, setPromptName] = useState("Customer Support System Prompt");
+  const [promptName, setPromptName] = useState(
+    "Customer Support System Prompt",
+  );
   const [promptText, setPromptText] = useState(defaultPrompt);
   const [template, setTemplate] = useState("system");
   const [selectedVersion, setSelectedVersion] = useState("v3");
@@ -111,7 +134,12 @@ export default function PromptStudioPage() {
             <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center justify-between">
                 <div className="space-y-2 flex-1 mr-4">
-                  <Label htmlFor="prompt-name" className="text-xs text-muted-foreground">Prompt Name</Label>
+                  <Label
+                    htmlFor="prompt-name"
+                    className="text-xs text-muted-foreground"
+                  >
+                    Prompt Name
+                  </Label>
                   <Input
                     id="prompt-name"
                     value={promptName}
@@ -120,7 +148,9 @@ export default function PromptStudioPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Template</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Template
+                  </Label>
                   <Select value={template} onValueChange={setTemplate}>
                     <SelectTrigger className="w-48 h-9">
                       <SelectValue />
@@ -146,7 +176,9 @@ export default function PromptStudioPage() {
               </div>
 
               <div className="space-y-2.5">
-                <Label className="text-xs text-muted-foreground">Insert Variable</Label>
+                <Label className="text-xs text-muted-foreground">
+                  Insert Variable
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   {variables.map((v) => (
                     <Button
@@ -199,7 +231,11 @@ export default function PromptStudioPage() {
                   </div>
                   <CardTitle className="text-sm">AI Output</CardTitle>
                 </div>
-                <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 h-7 text-xs"
+                >
                   <Copy className="h-3.5 w-3.5" /> Copy
                 </Button>
               </div>
@@ -212,7 +248,9 @@ export default function PromptStudioPage() {
                     <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/80" />
                     <div className="h-2.5 w-2.5 rounded-full bg-green-500/80" />
                   </div>
-                  <span className="text-[10px] text-zinc-500 font-mono ml-1">output</span>
+                  <span className="text-[10px] text-zinc-500 font-mono ml-1">
+                    output
+                  </span>
                 </div>
                 <div className="p-4 overflow-y-auto max-h-[320px]">
                   <pre className="text-[11px] font-mono text-zinc-300 dark:text-zinc-400 whitespace-pre-wrap leading-relaxed">
@@ -240,7 +278,11 @@ export default function PromptStudioPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold">Version History</h3>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground"
+                  >
                     <RotateCcw className="h-3 w-3 mr-1" /> View All
                   </Button>
                 </div>
@@ -257,31 +299,46 @@ export default function PromptStudioPage() {
                         "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-all text-xs",
                         selectedVersion === v.version
                           ? "bg-primary/10 border border-primary/20"
-                          : "hover:bg-muted border border-transparent"
+                          : "hover:bg-muted border border-transparent",
                       )}
                     >
                       <div className="flex items-center gap-2.5">
-                        <span className={cn(
-                          "font-mono font-semibold text-[11px]",
-                          selectedVersion === v.version ? "text-primary" : "text-foreground"
-                        )}>
+                        <span
+                          className={cn(
+                            "font-mono font-semibold text-[11px]",
+                            selectedVersion === v.version
+                              ? "text-primary"
+                              : "text-foreground",
+                          )}
+                        >
                           {v.version}
                         </span>
                         {v.label && (
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-primary/30 text-primary">
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1.5 py-0 h-4 border-primary/30 text-primary"
+                          >
                             {v.label}
                           </Badge>
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] text-muted-foreground">{v.time}</p>
-                        <p className="text-[10px] text-muted-foreground/70">{v.changes}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {v.time}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/70">
+                          {v.changes}
+                        </p>
                       </div>
                     </motion.button>
                   ))}
                 </div>
 
-                <Button variant="outline" size="sm" className="w-full gap-2 text-xs">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2 text-xs"
+                >
                   <RotateCcw className="h-3.5 w-3.5" />
                   Restore Selected Version
                 </Button>

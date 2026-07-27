@@ -1,38 +1,46 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  TrendingUp,
-  ArrowUpRight,
   ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
   Calendar,
-  MessageSquare,
   Clock,
   Coins,
+  MessageSquare,
   Smile,
-  BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import {
-  AreaChart,
   Area,
-  BarChart,
+  AreaChart,
   Bar,
-  LineChart,
+  BarChart,
+  CartesianGrid,
+  Cell,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ComposedChart,
-  Cell,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { dashboardStats, monthlyUsage, agentDistribution } from "@/lib/mock-data";
-import { formatNumber, formatCurrency } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { dashboardStats, monthlyUsage } from "@/lib/mock-data";
+import { formatNumber } from "@/lib/utils";
 
 const dailyData = Array.from({ length: 30 }, (_, i) => ({
   day: `Jul ${i + 1}`,
@@ -78,7 +86,7 @@ const heatmapData = (() => {
         hour,
         value: Math.floor(base + Math.random() * 30),
       };
-    })
+    }),
   );
 })();
 
@@ -130,14 +138,25 @@ const statCards = [
   },
 ];
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) => {
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; name: string; color: string }>;
+  label?: string;
+}) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-border bg-card p-2 shadow-lg text-xs">
       <p className="font-medium mb-1">{label}</p>
       {payload.map((p, i) => (
         <p key={i} className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ background: p.color }}
+          />
           <span className="text-muted-foreground">{p.name}:</span>
           <span className="font-medium">{formatNumber(p.value)}</span>
         </p>
@@ -154,7 +173,9 @@ export default function AnalyticsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold">Analytics</h1>
-          <p className="text-sm text-muted-foreground">Executive insights into your agents performance.</p>
+          <p className="text-sm text-muted-foreground">
+            Executive insights into your agents performance.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={dateRange} onValueChange={setDateRange}>
@@ -188,7 +209,9 @@ export default function AnalyticsPage() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{stat.label}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                      {stat.label}
+                    </p>
                     <p className="text-2xl font-bold mt-1">{stat.value}</p>
                     <div className="flex items-center gap-1 mt-1">
                       {stat.up ? (
@@ -196,11 +219,17 @@ export default function AnalyticsPage() {
                       ) : (
                         <ArrowDownRight className="h-3.5 w-3.5 text-success" />
                       )}
-                      <span className="text-xs font-medium text-success">{stat.change}</span>
-                      <span className="text-xs text-muted-foreground">vs last month</span>
+                      <span className="text-xs font-medium text-success">
+                        {stat.change}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        vs last month
+                      </span>
                     </div>
                   </div>
-                  <div className={`h-10 w-10 rounded-lg bg-muted flex items-center justify-center ${stat.color}`}>
+                  <div
+                    className={`h-10 w-10 rounded-lg bg-muted flex items-center justify-center ${stat.color}`}
+                  >
                     <stat.icon className="h-5 w-5" />
                   </div>
                 </div>
@@ -211,7 +240,11 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Daily Conversations</CardTitle>
@@ -220,23 +253,60 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={dailyData}>
                   <defs>
-                    <linearGradient id="colorConversations" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="colorConversations"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} tickLine={false} axisLine={false} interval={4} />
-                  <YAxis tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => formatNumber(v)} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--color-border)"
+                  />
+                  <XAxis
+                    dataKey="day"
+                    tick={{
+                      fontSize: 10,
+                      fill: "var(--color-muted-foreground)",
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={4}
+                  />
+                  <YAxis
+                    tick={{
+                      fontSize: 10,
+                      fill: "var(--color-muted-foreground)",
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v: number) => formatNumber(v)}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="conversations" name="Conversations" stroke="#6366f1" strokeWidth={2} fill="url(#colorConversations)" />
+                  <Area
+                    type="monotone"
+                    dataKey="conversations"
+                    name="Conversations"
+                    stroke="#6366f1"
+                    strokeWidth={2}
+                    fill="url(#colorConversations)"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25 }}
+        >
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Monthly Usage</CardTitle>
@@ -247,21 +317,53 @@ export default function AnalyticsPage() {
                   <defs>
                     <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#a855f7" stopOpacity={1} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0.8} />
+                      <stop
+                        offset="95%"
+                        stopColor="#6366f1"
+                        stopOpacity={0.8}
+                      />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => formatNumber(v)} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--color-border)"
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tick={{
+                      fontSize: 10,
+                      fill: "var(--color-muted-foreground)",
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{
+                      fontSize: 10,
+                      fill: "var(--color-muted-foreground)",
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v: number) => formatNumber(v)}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="conversations" name="Conversations" fill="url(#colorUsage)" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="conversations"
+                    name="Conversations"
+                    fill="url(#colorUsage)"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Token Usage</CardTitle>
@@ -274,24 +376,67 @@ export default function AnalyticsPage() {
                       <stop offset="5%" stopColor="#22c55e" />
                       <stop offset="95%" stopColor="#06b6d4" />
                     </linearGradient>
-                    <linearGradient id="colorOutput" x1="0" y1="0" x2="1" y2="0">
+                    <linearGradient
+                      id="colorOutput"
+                      x1="0"
+                      y1="0"
+                      x2="1"
+                      y2="0"
+                    >
                       <stop offset="5%" stopColor="#f59e0b" />
                       <stop offset="95%" stopColor="#ef4444" />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => formatNumber(v)} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--color-border)"
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tick={{
+                      fontSize: 10,
+                      fill: "var(--color-muted-foreground)",
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{
+                      fontSize: 10,
+                      fill: "var(--color-muted-foreground)",
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v: number) => formatNumber(v)}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Line type="monotone" dataKey="inputTokens" name="Input Tokens" stroke="url(#colorInput)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="outputTokens" name="Output Tokens" stroke="url(#colorOutput)" strokeWidth={2} dot={false} />
+                  <Line
+                    type="monotone"
+                    dataKey="inputTokens"
+                    name="Input Tokens"
+                    stroke="url(#colorInput)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="outputTokens"
+                    name="Output Tokens"
+                    stroke="url(#colorOutput)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.35 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.35 }}
+        >
           <Card>
             <CardHeader>
               <CardTitle className="text-base">User Satisfaction</CardTitle>
@@ -300,16 +445,48 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={satisfactionData}>
                   <defs>
-                    <linearGradient id="colorSatisfaction" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="colorSatisfaction"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} tickLine={false} axisLine={false} />
-                  <YAxis domain={[4, 5]} tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} tickLine={false} axisLine={false} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--color-border)"
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tick={{
+                      fontSize: 10,
+                      fill: "var(--color-muted-foreground)",
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    domain={[4, 5]}
+                    tick={{
+                      fontSize: 10,
+                      fill: "var(--color-muted-foreground)",
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="score" name="Score" stroke="#22c55e" strokeWidth={2} fill="url(#colorSatisfaction)" />
+                  <Area
+                    type="monotone"
+                    dataKey="score"
+                    name="Score"
+                    stroke="#22c55e"
+                    strokeWidth={2}
+                    fill="url(#colorSatisfaction)"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -318,19 +495,55 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Top Agents</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={topAgentsData} layout="vertical" margin={{ left: 80 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => formatNumber(v)} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} tickLine={false} axisLine={false} width={80} />
+                <BarChart
+                  data={topAgentsData}
+                  layout="vertical"
+                  margin={{ left: 80 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--color-border)"
+                    horizontal={false}
+                  />
+                  <XAxis
+                    type="number"
+                    tick={{
+                      fontSize: 10,
+                      fill: "var(--color-muted-foreground)",
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v: number) => formatNumber(v)}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{
+                      fontSize: 11,
+                      fill: "var(--color-muted-foreground)",
+                    }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={80}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="conversations" name="Conversations" radius={[0, 4, 4, 0]} barSize={20}>
+                  <Bar
+                    dataKey="conversations"
+                    name="Conversations"
+                    radius={[0, 4, 4, 0]}
+                    barSize={20}
+                  >
                     {topAgentsData.map((entry, i) => (
                       <Cell key={i} fill={entry.color} />
                     ))}
@@ -341,7 +554,11 @@ export default function AnalyticsPage() {
           </Card>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.45 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.45 }}
+        >
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Peak Usage Heatmap</CardTitle>
@@ -351,7 +568,10 @@ export default function AnalyticsPage() {
                 <div className="min-w-[600px]">
                   <div className="flex gap-[2px] mb-1 pl-10">
                     {Array.from({ length: 24 }, (_, i) => (
-                      <div key={i} className="flex-1 text-center text-[8px] text-muted-foreground">
+                      <div
+                        key={i}
+                        className="flex-1 text-center text-[8px] text-muted-foreground"
+                      >
                         {i % 3 === 0 ? `${i}:00` : ""}
                       </div>
                     ))}
@@ -367,7 +587,10 @@ export default function AnalyticsPage() {
                             key={colIdx}
                             initial={{ opacity: 0, scale: 0 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.3, delay: (rowIdx * 24 + colIdx) * 0.002 }}
+                            transition={{
+                              duration: 0.3,
+                              delay: (rowIdx * 24 + colIdx) * 0.002,
+                            }}
                             className="flex-1 aspect-square rounded-[2px] cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all"
                             style={{
                               backgroundColor:
@@ -397,15 +620,22 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
                   <div className="flex items-center justify-end gap-2 mt-3">
-                    <span className="text-[10px] text-muted-foreground">Less</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Less
+                    </span>
                     {[0.2, 0.35, 0.5, 0.7, 1].map((op, i) => (
                       <div
                         key={i}
                         className="h-3 w-3 rounded-[2px]"
-                        style={{ background: "var(--color-primary)", opacity: op }}
+                        style={{
+                          background: "var(--color-primary)",
+                          opacity: op,
+                        }}
                       />
                     ))}
-                    <span className="text-[10px] text-muted-foreground">More</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      More
+                    </span>
                   </div>
                 </div>
               </div>
@@ -414,7 +644,11 @@ export default function AnalyticsPage() {
         </motion.div>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+      >
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -432,13 +666,19 @@ export default function AnalyticsPage() {
                   transition={{ duration: 0.3, delay: i * 0.04 }}
                   className="flex items-center gap-3"
                 >
-                  <span className="text-xs text-muted-foreground w-5 text-right shrink-0 font-mono">{i + 1}</span>
-                  <p className="text-sm flex-1 min-w-0 truncate">{item.question}</p>
+                  <span className="text-xs text-muted-foreground w-5 text-right shrink-0 font-mono">
+                    {i + 1}
+                  </span>
+                  <p className="text-sm flex-1 min-w-0 truncate">
+                    {item.question}
+                  </p>
                   <div className="w-40 shrink-0">
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
-                        animate={{ width: `${(item.count / topQuestions[0].count) * 100}%` }}
+                        animate={{
+                          width: `${(item.count / topQuestions[0].count) * 100}%`,
+                        }}
                         transition={{ duration: 0.8, delay: 0.2 + i * 0.05 }}
                         className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
                       />

@@ -4,13 +4,7 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Sparkles,
-  Eye,
-  EyeOff,
-  Loader2,
-  Check,
-} from "lucide-react";
+import { Sparkles, Eye, EyeOff, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -125,8 +119,8 @@ export default function RegisterPage() {
             Start building agents today
           </h2>
           <p className="text-gray-400 text-lg max-w-md mx-auto mb-10">
-            Create your free account and start building intelligent AI agents
-            in minutes.
+            Create your free account and start building intelligent AI agents in
+            minutes.
           </p>
 
           <div className="space-y-4 max-w-sm mx-auto">
@@ -159,13 +153,13 @@ export default function RegisterPage() {
             <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold gradient-text">AgentForge AI</span>
+            <span className="text-lg font-bold gradient-text">AgentMax AI</span>
           </Link>
 
           <div className="mb-8">
             <h1 className="text-2xl font-bold mb-1">Create your account</h1>
             <p className="text-muted-foreground">
-              Get started with AgentForge AI for free.
+              Get started with AgentMax AI for free.
             </p>
           </div>
 
@@ -177,8 +171,12 @@ export default function RegisterPage() {
                 className="gap-2 h-11"
                 onClick={() => setLoading(true)}
               >
-                <div className={`h-5 w-5 rounded-full ${provider.color} flex items-center justify-center`}>
-                  <span className="text-[10px] font-bold text-white">{provider.letter}</span>
+                <div
+                  className={`h-5 w-5 rounded-full ${provider.color} flex items-center justify-center`}
+                >
+                  <span className="text-[10px] font-bold text-white">
+                    {provider.letter}
+                  </span>
                 </div>
                 <span className="text-sm">{provider.name}</span>
               </Button>
@@ -199,10 +197,16 @@ export default function RegisterPage() {
                 id="name"
                 placeholder="Your full name"
                 {...register("name")}
-                className={errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                className={
+                  errors.name
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
               />
               {errors.name && (
-                <p className="text-xs text-destructive">{errors.name.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.name.message}
+                </p>
               )}
             </div>
 
@@ -213,10 +217,16 @@ export default function RegisterPage() {
                 type="email"
                 placeholder="you@company.com"
                 {...register("email")}
-                className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                className={
+                  errors.email
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
               />
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -249,7 +259,9 @@ export default function RegisterPage() {
                 </Button>
               </div>
               {errors.password && (
-                <p className="text-xs text-destructive">{errors.password.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.password.message}
+                </p>
               )}
 
               {passwordValue.length > 0 && (
@@ -275,9 +287,7 @@ export default function RegisterPage() {
                       >
                         <div
                           className={`h-3.5 w-3.5 rounded-full flex items-center justify-center transition-colors ${
-                            check.met
-                              ? "bg-success text-white"
-                              : "bg-muted"
+                            check.met ? "bg-success text-white" : "bg-muted"
                           }`}
                         >
                           {check.met && <Check className="h-2.5 w-2.5" />}
@@ -319,7 +329,10 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="terms" className="flex items-start gap-2 cursor-pointer">
+              <label
+                htmlFor="terms"
+                className="flex items-start gap-2 cursor-pointer"
+              >
                 <input
                   id="terms"
                   type="checkbox"

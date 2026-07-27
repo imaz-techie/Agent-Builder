@@ -29,8 +29,8 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -163,8 +163,16 @@ const featuresRow2 = [
 ];
 
 const steps = [
-  { icon: Bot, label: "Create Agent", description: "Design your agent persona" },
-  { icon: Upload, label: "Upload Knowledge", description: "Add docs, URLs, data" },
+  {
+    icon: Bot,
+    label: "Create Agent",
+    description: "Design your agent persona",
+  },
+  {
+    icon: Upload,
+    label: "Upload Knowledge",
+    description: "Add docs, URLs, data",
+  },
   { icon: Brain, label: "Train AI", description: "Fine-tune responses" },
   { icon: Rocket, label: "Deploy", description: "Go live in seconds" },
   { icon: Code2, label: "Embed Widget", description: "Add to any website" },
@@ -174,7 +182,7 @@ const steps = [
 const pricingTiers = [
   {
     name: "Starter",
-    price: 49,
+    price: 9,
     description: "Perfect for individuals and small projects.",
     features: [
       "5 AI Agents",
@@ -189,7 +197,7 @@ const pricingTiers = [
   },
   {
     name: "Professional",
-    price: 149,
+    price: 49,
     description: "Best for growing teams and businesses.",
     features: [
       "25 AI Agents",
@@ -206,7 +214,7 @@ const pricingTiers = [
   },
   {
     name: "Enterprise",
-    price: 499,
+    price: 99,
     description: "For organizations with advanced needs.",
     features: [
       "Unlimited AI Agents",
@@ -227,7 +235,7 @@ const pricingTiers = [
 const testimonials = [
   {
     quote:
-      "AgentForge AI transformed our customer support. We reduced resolution time by 60% and our agents handle 80% of tickets autonomously now.",
+      "AgentMax AI transformed our customer support. We reduced resolution time by 60% and our agents handle 80% of tickets autonomously now.",
     name: "Sarah Chen",
     title: "VP of Operations",
     company: "Meridian Health",
@@ -253,9 +261,9 @@ const testimonials = [
 
 const faqs = [
   {
-    question: "What is AgentForge AI?",
+    question: "What is AgentMax AI?",
     answer:
-      "AgentForge AI is an enterprise-grade platform that enables teams to build, train, and deploy intelligent AI agents. Our visual builder, knowledge base integration, and deployment tools let you create production-ready agents without writing code, or customize everything through our powerful API.",
+      "AgentMax AI is an enterprise-grade platform that enables teams to build, train, and deploy intelligent AI agents. Our visual builder, knowledge base integration, and deployment tools let you create production-ready agents without writing code, or customize everything through our powerful API.",
   },
   {
     question: "How do I create an AI agent?",
@@ -280,7 +288,7 @@ const faqs = [
   {
     question: "How does pricing work?",
     answer:
-      "We offer transparent, usage-based pricing. Start with our Starter plan at $49/month, upgrade to Professional at $149/month for your growing team, or contact us for Enterprise pricing. All plans include a 14-day free trial with no credit card required.",
+      "We offer transparent, usage-based pricing. Start with our Starter plan at $9/month, upgrade to Professional at $49/month for your growing team, or contact us for Enterprise pricing. All plans include a 14-day free trial with no credit card required.",
   },
 ];
 
@@ -385,7 +393,7 @@ export default function LandingPage() {
           "fixed top-0 inset-x-0 z-50 transition-all duration-300",
           scrolled
             ? "bg-background/70 backdrop-blur-2xl border-b border-border/50 shadow-sm"
-            : "bg-transparent"
+            : "bg-transparent",
         )}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
@@ -394,7 +402,7 @@ export default function LandingPage() {
             <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center shadow-md">
               <Sparkles className="h-4.5 w-4.5 text-white" />
             </div>
-            <span className="text-lg font-bold gradient-text">AgentForge AI</span>
+            <span className="text-lg font-bold gradient-text">AgentMax AI</span>
           </Link>
 
           {/* Desktop Nav */}
@@ -486,12 +494,19 @@ export default function LandingPage() {
               ))}
               <Separator className="my-3" />
               <Link to="/login" onClick={closeMobileMenu}>
-                <Button variant="ghost" size="sm" className="w-full justify-start">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                >
                   Log in
                 </Button>
               </Link>
               <Link to="/register" onClick={closeMobileMenu}>
-                <Button size="sm" className="w-full justify-center gap-1.5 mt-1">
+                <Button
+                  size="sm"
+                  className="w-full justify-center gap-1.5 mt-1"
+                >
                   Get Started
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
@@ -536,8 +551,7 @@ export default function LandingPage() {
                 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6"
               >
                 Build, Train &amp; Deploy{" "}
-                <span className="gradient-text">AI Agents</span>{" "}
-                in Minutes
+                <span className="gradient-text">AI Agents</span> in Minutes
               </motion.h1>
 
               <motion.p
@@ -545,8 +559,8 @@ export default function LandingPage() {
                 custom={2}
                 className="text-lg md:text-xl text-muted-foreground max-w-xl leading-relaxed mb-8"
               >
-                Create intelligent AI agents that learn from your data, understand
-                your customers, and work 24/7 across every channel.
+                Create intelligent AI agents that learn from your data,
+                understand your customers, and work 24/7 across every channel.
               </motion.p>
 
               <motion.div
@@ -575,7 +589,8 @@ export default function LandingPage() {
                 custom={4}
                 className="mt-5 text-xs text-muted-foreground"
               >
-                Free 14-day trial &middot; No credit card required &middot; Cancel anytime
+                Free 14-day trial &middot; No credit card required &middot;
+                Cancel anytime
               </motion.p>
             </motion.div>
 
@@ -669,33 +684,85 @@ export default function LandingPage() {
                   viewBox="0 0 420 380"
                 >
                   <defs>
-                    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.3" />
-                      <stop offset="100%" stopColor="var(--color-secondary)" stopOpacity="0.1" />
+                    <linearGradient
+                      id="lineGrad"
+                      x1="0%"
+                      y1="0%"
+                      x2="100%"
+                      y2="100%"
+                    >
+                      <stop
+                        offset="0%"
+                        stopColor="var(--color-primary)"
+                        stopOpacity="0.3"
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor="var(--color-secondary)"
+                        stopOpacity="0.1"
+                      />
                     </linearGradient>
                   </defs>
                   {/* Brain to top */}
-                  <line x1="210" y1="160" x2="210" y2="65" stroke="url(#lineGrad)" strokeWidth="1.5" strokeDasharray="4 4" />
+                  <line
+                    x1="210"
+                    y1="160"
+                    x2="210"
+                    y2="65"
+                    stroke="url(#lineGrad)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
                   {/* Brain to top-left */}
-                  <line x1="180" y1="180" x2="80" y2="135" stroke="url(#lineGrad)" strokeWidth="1.5" strokeDasharray="4 4" />
+                  <line
+                    x1="180"
+                    y1="180"
+                    x2="80"
+                    y2="135"
+                    stroke="url(#lineGrad)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
                   {/* Brain to top-right */}
-                  <line x1="240" y1="180" x2="340" y2="135" stroke="url(#lineGrad)" strokeWidth="1.5" strokeDasharray="4 4" />
+                  <line
+                    x1="240"
+                    y1="180"
+                    x2="340"
+                    y2="135"
+                    stroke="url(#lineGrad)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
                   {/* Brain to bottom-left */}
-                  <line x1="185" y1="220" x2="100" y2="320" stroke="url(#lineGrad)" strokeWidth="1.5" strokeDasharray="4 4" />
+                  <line
+                    x1="185"
+                    y1="220"
+                    x2="100"
+                    y2="320"
+                    stroke="url(#lineGrad)"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
                 </svg>
 
                 {/* Mini Chat Widget Preview */}
                 <motion.div
                   initial={{ opacity: 0, y: 20, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ delay: 1.4, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{
+                    delay: 1.4,
+                    duration: 0.6,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
                   className="absolute -bottom-4 right-4 w-64 rounded-xl border border-border bg-card shadow-xl overflow-hidden"
                 >
                   <div className="bg-gradient-primary px-3.5 py-2.5 flex items-center gap-2">
                     <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
                       <Bot className="h-3 w-3 text-white" />
                     </div>
-                    <span className="text-xs font-semibold text-white">AgentForge Bot</span>
+                    <span className="text-xs font-semibold text-white">
+                      AgentMax Bot
+                    </span>
                     <span className="ml-auto flex h-2 w-2">
                       <span className="animate-ping absolute h-2 w-2 rounded-full bg-green-400 opacity-75" />
                       <span className="relative rounded-full h-2 w-2 bg-green-400" />
@@ -709,7 +776,8 @@ export default function LandingPage() {
                       What are your pricing plans?
                     </div>
                     <div className="bg-muted rounded-lg rounded-tl-none px-3 py-2 text-xs text-foreground max-w-[85%]">
-                      We offer three plans starting at $49/mo. Would you like details?
+                      We offer three plans starting at $49/mo. Would you like
+                      details?
                     </div>
                   </div>
                 </motion.div>
@@ -817,7 +885,10 @@ export default function LandingPage() {
       </Section>
 
       {/* ──────────────────────── How It Works ──────────────────────── */}
-      <Section id="how-it-works" className="py-24 md:py-32 bg-muted/20 border-y border-border/50">
+      <Section
+        id="how-it-works"
+        className="py-24 md:py-32 bg-muted/20 border-y border-border/50"
+      >
         <div className="max-w-7xl mx-auto px-6">
           <SectionHeader
             badge="How It Works"
@@ -855,7 +926,9 @@ export default function LandingPage() {
                 </div>
 
                 <h3 className="font-semibold text-sm mb-1">{step.label}</h3>
-                <p className="text-xs text-muted-foreground">{step.description}</p>
+                <p className="text-xs text-muted-foreground">
+                  {step.description}
+                </p>
 
                 {/* Connector Line (desktop) */}
                 {i < steps.length - 1 && (
@@ -904,7 +977,10 @@ export default function LandingPage() {
       </Section>
 
       {/* ──────────────────────── Pricing Section ──────────────────────── */}
-      <Section id="pricing" className="py-24 md:py-32 bg-muted/20 border-y border-border/50">
+      <Section
+        id="pricing"
+        className="py-24 md:py-32 bg-muted/20 border-y border-border/50"
+      >
         <div className="max-w-7xl mx-auto px-6">
           <SectionHeader
             badge="Pricing"
@@ -935,7 +1011,7 @@ export default function LandingPage() {
                   className={cn(
                     "relative flex flex-col h-full transition-all duration-300 hover:shadow-xl",
                     tier.popular &&
-                      "border-primary shadow-lg shadow-primary/10 md:-my-4 md:py-4"
+                      "border-primary shadow-lg shadow-primary/10 md:-my-4 md:py-4",
                   )}
                 >
                   {tier.popular && (
@@ -945,7 +1021,12 @@ export default function LandingPage() {
                       </Badge>
                     </div>
                   )}
-                  <CardContent className={cn("p-6 flex flex-col flex-1", tier.popular && "pt-8")}>
+                  <CardContent
+                    className={cn(
+                      "p-6 flex flex-col flex-1",
+                      tier.popular && "pt-8",
+                    )}
+                  >
                     <h3 className="text-lg font-semibold mb-1">{tier.name}</h3>
                     <p className="text-sm text-muted-foreground mb-5">
                       {tier.description}
@@ -954,7 +1035,9 @@ export default function LandingPage() {
                       <span className="text-4xl font-extrabold tracking-tight">
                         ${tier.price}
                       </span>
-                      <span className="text-muted-foreground text-sm ml-1">/month</span>
+                      <span className="text-muted-foreground text-sm ml-1">
+                        /month
+                      </span>
                     </div>
                     <ul className="space-y-2.5 mb-8 flex-1">
                       {tier.features.map((feature) => (
@@ -1045,7 +1128,10 @@ export default function LandingPage() {
       </Section>
 
       {/* ──────────────────────── FAQ Section ──────────────────────── */}
-      <Section id="faq" className="py-24 md:py-32 bg-muted/20 border-y border-border/50">
+      <Section
+        id="faq"
+        className="py-24 md:py-32 bg-muted/20 border-y border-border/50"
+      >
         <div className="max-w-3xl mx-auto px-6">
           <SectionHeader
             badge="FAQ"
@@ -1112,9 +1198,14 @@ export default function LandingPage() {
               custom={1}
               className="text-lg text-white/80 mb-8 max-w-xl mx-auto relative z-10"
             >
-              Start for free. No credit card required. Deploy your first agent in under 5 minutes.
+              Start for free. No credit card required. Deploy your first agent
+              in under 5 minutes.
             </motion.p>
-            <motion.div variants={fadeInUp} custom={2} className="relative z-10">
+            <motion.div
+              variants={fadeInUp}
+              custom={2}
+              className="relative z-10"
+            >
               <Link to="/register">
                 <Button
                   size="lg"
@@ -1140,10 +1231,13 @@ export default function LandingPage() {
                 <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
                   <Sparkles className="h-4.5 w-4.5 text-white" />
                 </div>
-                <span className="text-lg font-bold gradient-text">AgentForge AI</span>
+                <span className="text-lg font-bold gradient-text">
+                  AgentMax AI
+                </span>
               </Link>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mb-5">
-                The enterprise platform for building, training, and deploying intelligent AI agents at scale.
+                The enterprise platform for building, training, and deploying
+                intelligent AI agents at scale.
               </p>
               <div className="flex gap-3">
                 {[Globe, Share2, ExternalLink].map((Icon, i) => (
@@ -1182,7 +1276,8 @@ export default function LandingPage() {
 
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} AgentForge Inc. All rights reserved.
+              &copy; {new Date().getFullYear()} AgentMax Inc. All rights
+              reserved.
             </p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">

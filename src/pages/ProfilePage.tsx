@@ -13,7 +13,13 @@ import {
   Globe,
   Check,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +46,7 @@ export default function ProfilePage() {
   const sessions = [
     {
       id: "1",
-      device: "MacBook Pro 16\"",
+      device: 'MacBook Pro 16"',
       browser: "Chrome 120.0",
       os: "macOS Sonoma",
       ip: "192.168.1.42",
@@ -101,7 +107,9 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Profile Picture</CardTitle>
-            <CardDescription>Your profile photo will be visible across the platform.</CardDescription>
+            <CardDescription>
+              Your profile photo will be visible across the platform.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-6">
@@ -114,7 +122,11 @@ export default function ProfilePage() {
                 <Button variant="outline" size="sm" className="gap-2">
                   <Camera className="h-4 w-4" /> Upload new photo
                 </Button>
-                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                >
                   Remove photo
                 </Button>
                 <p className="text-xs text-muted-foreground">
@@ -134,7 +146,9 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Personal Information</CardTitle>
-            <CardDescription>Update your personal details and contact information.</CardDescription>
+            <CardDescription>
+              Update your personal details and contact information.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -145,8 +159,11 @@ export default function ProfilePage() {
               <div className="space-y-2">
                 <Label>Email Address</Label>
                 <div className="flex">
-                  <Input defaultValue="sarah@agentforge.ai" type="email" />
-                  <Badge variant="secondary" className="ml-2 shrink-0 bg-success/10 text-success flex items-center gap-1 self-center">
+                  <Input defaultValue="sarah@agentmax.ai" type="email" />
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 shrink-0 bg-success/10 text-success flex items-center gap-1 self-center"
+                  >
                     <Check className="h-3 w-3" />
                     Verified
                   </Badge>
@@ -156,7 +173,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Company</Label>
-                <Input defaultValue="AgentForge Inc." />
+                <Input defaultValue="AgentMax Inc." />
               </div>
               <div className="space-y-2">
                 <Label>Job Title</Label>
@@ -175,7 +192,9 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Change Password</CardTitle>
-            <CardDescription>Update your password to keep your account secure.</CardDescription>
+            <CardDescription>
+              Update your password to keep your account secure.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -207,18 +226,26 @@ export default function ProfilePage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Two-Factor Authentication</CardTitle>
-            <CardDescription>Add an extra layer of security to your account.</CardDescription>
+            <CardTitle className="text-base">
+              Two-Factor Authentication
+            </CardTitle>
+            <CardDescription>
+              Add an extra layer of security to your account.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                  twoFAEnabled ? "bg-success/10" : "bg-muted"
-                }`}>
-                  <Shield className={`h-5 w-5 ${
-                    twoFAEnabled ? "text-success" : "text-muted-foreground"
-                  }`} />
+                <div
+                  className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                    twoFAEnabled ? "bg-success/10" : "bg-muted"
+                  }`}
+                >
+                  <Shield
+                    className={`h-5 w-5 ${
+                      twoFAEnabled ? "text-success" : "text-muted-foreground"
+                    }`}
+                  />
                 </div>
                 <div>
                   <p className="text-sm font-medium">
@@ -253,7 +280,9 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Active Sessions</CardTitle>
-            <CardDescription>Manage devices signed in to your account.</CardDescription>
+            <CardDescription>
+              Manage devices signed in to your account.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -272,11 +301,12 @@ export default function ProfilePage() {
                     )}
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">
-                          {session.device}
-                        </p>
+                        <p className="text-sm font-medium">{session.device}</p>
                         {session.current && (
-                          <Badge variant="secondary" className="text-[10px] bg-success/10 text-success">
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] bg-success/10 text-success"
+                          >
                             Current
                           </Badge>
                         )}
@@ -321,8 +351,12 @@ export default function ProfilePage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Notification Preferences</CardTitle>
-            <CardDescription>Choose which email notifications you'd like to receive.</CardDescription>
+            <CardTitle className="text-base">
+              Notification Preferences
+            </CardTitle>
+            <CardDescription>
+              Choose which email notifications you'd like to receive.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-1">
             {[
@@ -335,7 +369,8 @@ export default function ProfilePage() {
               {
                 key: "product" as const,
                 label: "Security Alerts",
-                description: "Important security notifications and login alerts",
+                description:
+                  "Important security notifications and login alerts",
                 icon: Shield,
               },
               {
@@ -347,7 +382,8 @@ export default function ProfilePage() {
               {
                 key: "weekly" as const,
                 label: "Weekly Digest",
-                description: "Weekly summary of your agents' performance and usage",
+                description:
+                  "Weekly summary of your agents' performance and usage",
                 icon: Mail,
               },
               {
@@ -369,7 +405,9 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium">{item.label}</Label>
-                    <p className="text-xs text-muted-foreground">{item.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.description}
+                    </p>
                   </div>
                 </div>
                 <Switch

@@ -15,7 +15,12 @@ import {
   Clock,
   AlertTriangle,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -59,7 +64,7 @@ export default function ApiKeysPage() {
   const [showRevokeDialog, setShowRevokeDialog] = useState(false);
   const [_selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState(
-    "https://api.agentforge.ai/webhooks/v1/events"
+    "https://api.agentmax.ai/webhooks/v1/events",
   );
   const [testingWebhook, setTestingWebhook] = useState(false);
 
@@ -99,7 +104,7 @@ export default function ApiKeysPage() {
           <div>
             <h1 className="text-2xl font-bold">API Keys</h1>
             <p className="text-sm text-muted-foreground">
-              Manage API keys for programmatic access to AgentForge.
+              Manage API keys for programmatic access to AgentMax.
             </p>
           </div>
           <Button className="gap-2" onClick={() => setShowNewKey(true)}>
@@ -118,9 +123,10 @@ export default function ApiKeysPage() {
             <div className="text-sm">
               <p className="font-medium text-foreground">API Key Usage</p>
               <p className="text-muted-foreground mt-0.5">
-                Use API keys to authenticate requests to the AgentForge API. Each key can be
-                scoped with specific permissions (read, write, admin). Keep your keys secure and
-                never expose them in client-side code.
+                Use API keys to authenticate requests to the AgentMax API. Each
+                key can be scoped with specific permissions (read, write,
+                admin). Keep your keys secure and never expose them in
+                client-side code.
               </p>
             </div>
           </div>
@@ -177,7 +183,9 @@ export default function ApiKeysPage() {
                             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                               <Key className="h-4 w-4 text-primary" />
                             </div>
-                            <span className="text-sm font-medium">{apiKey.name}</span>
+                            <span className="text-sm font-medium">
+                              {apiKey.name}
+                            </span>
                           </div>
                         </td>
                         <td className="py-4 pr-4">
@@ -313,7 +321,9 @@ export default function ApiKeysPage() {
                     <Activity className="h-4 w-4" />
                     Requests Today
                   </div>
-                  <span className="text-lg font-bold">{requestsToday.toLocaleString()}</span>
+                  <span className="text-lg font-bold">
+                    {requestsToday.toLocaleString()}
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   +12.3% from yesterday
@@ -359,8 +369,9 @@ export default function ApiKeysPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Receive real-time event notifications via webhook. Configure your endpoint to receive
-                events for conversations, training completions, and more.
+                Receive real-time event notifications via webhook. Configure
+                your endpoint to receive events for conversations, training
+                completions, and more.
               </p>
               <div className="flex items-center gap-3">
                 <div className="flex-1">
@@ -398,7 +409,8 @@ export default function ApiKeysPage() {
             <DialogHeader>
               <DialogTitle>Generate New API Key</DialogTitle>
               <DialogDescription>
-                Create a new API key for programmatic access to the AgentForge API.
+                Create a new API key for programmatic access to the AgentMax
+                API.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-2">
@@ -416,11 +428,17 @@ export default function ApiKeysPage() {
               <div className="space-y-2">
                 <Label>Permissions</Label>
                 <div className="flex gap-2">
-                  <Badge variant="secondary" className="cursor-pointer hover:bg-primary/10">
+                  <Badge
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-primary/10"
+                  >
                     <Shield className="h-2.5 w-2.5 mr-1" />
                     read
                   </Badge>
-                  <Badge variant="secondary" className="cursor-pointer hover:bg-primary/10">
+                  <Badge
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-primary/10"
+                  >
                     <Shield className="h-2.5 w-2.5 mr-1" />
                     write
                   </Badge>
@@ -436,19 +454,24 @@ export default function ApiKeysPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+        <Dialog
+          open={showRegenerateDialog}
+          onOpenChange={setShowRegenerateDialog}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Regenerate API Key</DialogTitle>
               <DialogDescription>
-                This will invalidate the existing key and generate a new one. Any applications using
-                the old key will stop working immediately.
+                This will invalidate the existing key and generate a new one.
+                Any applications using the old key will stop working
+                immediately.
               </DialogDescription>
             </DialogHeader>
             <div className="rounded-lg border border-warning/20 bg-warning/5 p-3 flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
               <p className="text-sm text-muted-foreground">
-                This action cannot be undone. Make sure to update all integrations with the new key.
+                This action cannot be undone. Make sure to update all
+                integrations with the new key.
               </p>
             </div>
             <DialogFooter>
@@ -473,8 +496,8 @@ export default function ApiKeysPage() {
             <DialogHeader>
               <DialogTitle>Revoke API Key</DialogTitle>
               <DialogDescription>
-                Are you sure you want to revoke this API key? This action is permanent and cannot be
-                undone.
+                Are you sure you want to revoke this API key? This action is
+                permanent and cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 flex items-start gap-2">
