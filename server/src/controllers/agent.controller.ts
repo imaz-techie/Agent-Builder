@@ -2,9 +2,13 @@ import { Request, Response } from "express";
 import { agentService } from "../services/agent.service";
 import { sendApiResponse } from "../utils/apiResponse";
 
-export async function createAgent(req: Request, res: Response) {
+function getWorkspaceId(req: Request): string {
   const param = req.params.workspaceId || req.params.id;
-  const workspaceId = Array.isArray(param) ? param[0] : param;
+  return (Array.isArray(param) ? param[0] : param) || "ws_default";
+}
+
+export async function createAgent(req: Request, res: Response) {
+  const workspaceId = getWorkspaceId(req);
 
   const agent = await agentService.createAgent(workspaceId, req.user!.id, req.body);
   return sendApiResponse({
@@ -16,8 +20,7 @@ export async function createAgent(req: Request, res: Response) {
 }
 
 export async function getWorkspaceAgents(req: Request, res: Response) {
-  const param = req.params.workspaceId || req.params.id;
-  const workspaceId = Array.isArray(param) ? param[0] : param;
+  const workspaceId = getWorkspaceId(req);
 
   const result = await agentService.getWorkspaceAgents(workspaceId, req.query);
   return sendApiResponse({

@@ -198,11 +198,14 @@ const slideVariants = {
   exit: (dir: number) => ({ x: dir > 0 ? -80 : 80, opacity: 0 }),
 };
 
+import { useCreateAgentMutation } from "@/hooks/mutations/useAgentMutations";
+import type { AgentCategory } from "@/types/agent.types";
+
 export default function CreateAgentPage() {
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
-  const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
+  const createAgentMutation = useCreateAgentMutation();
 
   const {
     register,
@@ -260,12 +263,22 @@ export default function CreateAgentPage() {
     }
   }
 
-  function onSubmit(_data: FormData) {
-    setCreating(true);
-    setTimeout(() => {
-      setCreating(false);
-      setCreated(true);
-    }, 2000);
+  function onSubmit(data: FormData) {
+    createAgentMutation.mutate(
+      {
+        name: data.name,
+        description: data.description,
+        category: (data.category || "Customer Support") as AgentCategory,
+        model: data.model || "GPT-4o",
+        temperature: data.temperature,
+        maxTokens: data.maxTokens,
+      },
+      {
+        onSuccess: () => {
+          setCreated(true);
+        },
+      }
+    );
   }
 
   function toggleLanguage(lang: string) {
@@ -1030,8 +1043,8 @@ export default function CreateAgentPage() {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button type="submit" disabled={creating}>
-                {creating ? (
+              <Button type="submit" disabled={createAgentMutation.isPending}>
+                {createAgentMutation.isPending ? (
                   <>
                     <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
                     Creating...

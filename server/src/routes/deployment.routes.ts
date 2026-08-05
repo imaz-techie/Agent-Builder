@@ -20,6 +20,10 @@ import {
 
 const router = Router();
 
+// Top-level direct deployment endpoints
+router.get("/deployments", authenticate, asyncHandler(getWorkspaceDeployments));
+router.post("/deployments", authenticate, validate(createDeploymentSchema), asyncHandler(createDeployment));
+
 router.use("/workspaces", authenticate);
 
 /**

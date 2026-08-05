@@ -150,22 +150,29 @@ const statusFilterColors: Record<string, string> = {
   resolved: "bg-info/10 text-info",
 };
 
+import { conversations as mockConversations } from "@/lib/mock-data";
+import { useConversationsQuery } from "@/hooks/queries/useConversationQueries";
+import { useSendMessageMutation } from "@/hooks/mutations/useConversationMutations";
+
 export default function ConversationsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterTab>("all");
+  const { data: convList = mockConversations } = useConversationsQuery();
+  const sendMessageMutation = useSendMessageMutation();
+
   const [selectedId, setSelectedId] = useState<string | null>(
-    conversations[0]?.id ?? null,
+    convList[0]?.id ?? null
   );
   const [chatInput, setChatInput] = useState("");
 
-  const filtered = conversations.filter(
+  const filtered = convList.filter(
     (c) =>
       (filter === "all" || c.status === filter) &&
       (c.userName.toLowerCase().includes(search.toLowerCase()) ||
-        c.agentName.toLowerCase().includes(search.toLowerCase())),
+        c.agentName.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const selectedConv = conversations.find((c) => c.id === selectedId);
+  const selectedConv = convList.find((c) => c.id === selectedId);
   const messages = selectedId
     ? (chatMessages[selectedId] ?? defaultMessages)
     : defaultMessages;

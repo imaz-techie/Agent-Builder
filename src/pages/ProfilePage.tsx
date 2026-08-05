@@ -27,7 +27,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 
+import { useProfileQuery } from "@/hooks/queries/useAuthQueries";
+
 export default function ProfilePage() {
+  const { data: userProfile } = useProfileQuery();
   const [saving, setSaving] = useState(false);
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState({

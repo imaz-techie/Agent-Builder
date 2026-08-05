@@ -2,9 +2,13 @@ import { Request, Response } from "express";
 import { analyticsService } from "../services/analytics.service";
 import { sendApiResponse } from "../utils/apiResponse";
 
-export async function getOverview(req: Request, res: Response) {
+function getWorkspaceId(req: Request): string {
   const param = req.params.workspaceId || req.params.id;
-  const workspaceId = Array.isArray(param) ? param[0] : param;
+  return (Array.isArray(param) ? param[0] : param) || "ws_default";
+}
+
+export async function getOverview(req: Request, res: Response) {
+  const workspaceId = getWorkspaceId(req);
 
   const overview = await analyticsService.getOverview(workspaceId);
 
@@ -17,8 +21,7 @@ export async function getOverview(req: Request, res: Response) {
 }
 
 export async function getUsageTimeSeries(req: Request, res: Response) {
-  const param = req.params.workspaceId || req.params.id;
-  const workspaceId = Array.isArray(param) ? param[0] : param;
+  const workspaceId = getWorkspaceId(req);
 
   const usage = await analyticsService.getUsageTimeSeries(workspaceId);
 
@@ -31,8 +34,7 @@ export async function getUsageTimeSeries(req: Request, res: Response) {
 }
 
 export async function getAgentPerformance(req: Request, res: Response) {
-  const param = req.params.workspaceId || req.params.id;
-  const workspaceId = Array.isArray(param) ? param[0] : param;
+  const workspaceId = getWorkspaceId(req);
 
   const agents = await analyticsService.getAgentPerformance(workspaceId);
 
@@ -45,8 +47,7 @@ export async function getAgentPerformance(req: Request, res: Response) {
 }
 
 export async function getAuditLogs(req: Request, res: Response) {
-  const param = req.params.workspaceId || req.params.id;
-  const workspaceId = Array.isArray(param) ? param[0] : param;
+  const workspaceId = getWorkspaceId(req);
 
   const result = await analyticsService.getAuditLogs(workspaceId, req.query);
 
@@ -60,8 +61,7 @@ export async function getAuditLogs(req: Request, res: Response) {
 }
 
 export async function exportAnalyticsData(req: Request, res: Response) {
-  const param = req.params.workspaceId || req.params.id;
-  const workspaceId = Array.isArray(param) ? param[0] : param;
+  const workspaceId = getWorkspaceId(req);
   const format = (req.query.format as string) || "csv";
 
   const data = await analyticsService.exportAnalyticsData(workspaceId, format);

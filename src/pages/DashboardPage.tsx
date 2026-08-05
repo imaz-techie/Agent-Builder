@@ -196,7 +196,27 @@ const CustomTooltip = ({
   );
 };
 
+import {
+  agents as mockAgents,
+  activityTimeline as mockActivityTimeline,
+  agentDistribution as mockAgentDistribution,
+  monthlyUsage as mockMonthlyUsage,
+} from "@/lib/mock-data";
+import { useAgentsQuery } from "@/hooks/queries/useAgentQueries";
+import {
+  useDashboardStatsQuery,
+  useMonthlyUsageQuery,
+  useAgentDistributionQuery,
+  useActivityTimelineQuery,
+} from "@/hooks/queries/useAnalyticsQueries";
+
 export default function DashboardPage() {
+  const { data: agents = mockAgents } = useAgentsQuery();
+  const { data: stats } = useDashboardStatsQuery();
+  const { data: usageData = mockMonthlyUsage } = useMonthlyUsageQuery();
+  const { data: distData = mockAgentDistribution } = useAgentDistributionQuery();
+  const { data: timelineData = mockActivityTimeline } = useActivityTimelineQuery();
+
   const activeAgents = agents.filter((a) => a.status === "active");
 
   return (

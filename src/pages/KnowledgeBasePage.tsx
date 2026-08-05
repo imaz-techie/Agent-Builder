@@ -92,6 +92,13 @@ const integrations = [
 
 type SortKey = "name" | "type" | "status" | "chunks" | "size" | "uploadedAt";
 
+import { knowledgeFiles as mockKnowledgeFiles } from "@/lib/mock-data";
+import { useKnowledgeFilesQuery } from "@/hooks/queries/useKnowledgeQueries";
+import {
+  useUploadKnowledgeFileMutation,
+  useDeleteKnowledgeFileMutation,
+} from "@/hooks/mutations/useKnowledgeMutations";
+
 export default function KnowledgeBasePage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -99,10 +106,17 @@ export default function KnowledgeBasePage() {
   const [sortAsc, setSortAsc] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    console.log("Dropped files:", acceptedFiles);
-    setIsDragActive(false);
-  }, []);
+  const { data: files = mockKnowledgeFiles } = useKnowledgeFilesQuery();
+  const uploadMutation = useUploadKnowledgeFileMutation();
+  const deleteMutation = useDeleteKnowledgeFileMutation();
+
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      setIsDragActive(false);
+      acceptedFiles.forEach((file) => uploadMutation.mutate(file));
+    },
+    [uploadMutation]
+  );
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
@@ -119,7 +133,7 @@ export default function KnowledgeBasePage() {
     maxSize: 50 * 1024 * 1024,
   });
 
-  const filteredFiles = knowledgeFiles
+  const filteredFiles = files
     .filter((f) => {
       const matchesSearch = f.name.toLowerCase().includes(search.toLowerCase());
       const matchesType = typeFilter === "all" || f.type === typeFilter;

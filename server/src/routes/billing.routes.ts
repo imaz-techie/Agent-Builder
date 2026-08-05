@@ -15,6 +15,13 @@ import {
 
 const router = Router();
 
+// Top-level direct billing endpoints
+router.get("/billing/invoices", authenticate, asyncHandler(getInvoices));
+router.get("/billing/subscription", authenticate, asyncHandler(getAccount));
+router.patch("/billing/subscription", authenticate, validate(updatePlanSchema), asyncHandler(updatePlan));
+router.get("/billing/account", authenticate, asyncHandler(getAccount));
+router.get("/billing/usage", authenticate, asyncHandler(getUsageSummary));
+
 router.use("/workspaces", authenticate);
 
 /**

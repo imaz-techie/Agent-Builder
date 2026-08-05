@@ -22,6 +22,10 @@ import {
 
 const router = Router();
 
+// Top-level direct agent endpoints
+router.get("/agents", authenticate, validate(agentQuerySchema), asyncHandler(getWorkspaceAgents));
+router.post("/agents", authenticate, validate(createAgentSchema), asyncHandler(createAgent));
+
 router.use("/workspaces", authenticate);
 
 /**

@@ -72,8 +72,21 @@ const logLevelConfig: Record<string, { icon: React.ElementType; color: string; b
   info: { icon: Info, color: "text-info", bg: "bg-info/10" },
 };
 
+import { useDeploymentsQuery } from "@/hooks/queries/useDeploymentQueries";
+import { useCreateDeploymentMutation } from "@/hooks/mutations/useDeploymentMutations";
+
 export default function DeploymentPage() {
   const [selectedLog, setSelectedLog] = useState(0);
+  const { data: deployments = deploymentHistory } = useDeploymentsQuery();
+  const createDeploymentMutation = useCreateDeploymentMutation();
+
+  const handleDeployNew = () => {
+    createDeploymentMutation.mutate({
+      agentId: "SupportBot Pro",
+      environment: "production",
+      version: "3.4.0",
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -82,7 +95,11 @@ export default function DeploymentPage() {
           <h1 className="text-2xl font-bold">Deployment</h1>
           <p className="text-sm text-muted-foreground">Manage deployments across environments.</p>
         </div>
-        <Button className="gap-2 bg-gradient-primary text-white hover:opacity-90">
+        <Button
+          onClick={handleDeployNew}
+          disabled={createDeploymentMutation.isPending}
+          className="gap-2 bg-gradient-primary text-white hover:opacity-90"
+        >
           <Rocket className="h-4 w-4" />
           Deploy New Version
         </Button>

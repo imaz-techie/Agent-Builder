@@ -18,8 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { invoices } from "@/lib/mock-data";
+import { invoices as mockInvoices } from "@/lib/mock-data";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { useInvoicesQuery } from "@/hooks/queries/useBillingQueries";
 
 const plans = [
   {
@@ -100,6 +101,7 @@ const usageStats = [
 ];
 
 export default function BillingPage() {
+  const { data: invoices = mockInvoices } = useInvoicesQuery();
   return (
     <div className="space-y-6">
       <motion.div

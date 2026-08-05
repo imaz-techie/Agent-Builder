@@ -165,8 +165,19 @@ const CustomTooltip = ({
   );
 };
 
+import {
+  dashboardStats as mockDashboardStats,
+  monthlyUsage as mockMonthlyUsage,
+} from "@/lib/mock-data";
+import {
+  useDashboardStatsQuery,
+  useMonthlyUsageQuery,
+} from "@/hooks/queries/useAnalyticsQueries";
+
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState("30d");
+  const { data: stats = mockDashboardStats } = useDashboardStatsQuery();
+  const { data: usage = mockMonthlyUsage } = useMonthlyUsageQuery();
 
   return (
     <div className="space-y-6">

@@ -14,14 +14,19 @@ import { asyncHandler } from "./utils/asyncHandler";
 export function createApp(): Express {
   const app = express();
 
+
   // Core Security & Optimization Middlewares
-  app.use(helmet());
-  app.use(
-    cors({
-      origin: config.corsOrigin,
-      credentials: true,
-    })
-  );
+  // app.use(helmet());
+  // app.use(
+  //   cors({
+  //     origin: config.corsOrigin,
+  //     credentials: true,
+  //   })
+  // );
+  // Enable CORS allowing all origins with credentials
+  app.use(cors({ origin: true, credentials: true }));
+
+
   app.use(compression());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));

@@ -37,7 +37,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { agents, type Agent } from "@/lib/mock-data";
+import { agents as mockAgents } from "@/lib/mock-data";
+import type { Agent } from "@/types/agent.types";
+import { useAgentsQuery } from "@/hooks/queries/useAgentQueries";
+import { useDeleteAgentMutation } from "@/hooks/mutations/useAgentMutations";
 import {
   formatNumber,
   getStatusColor,
@@ -98,10 +101,17 @@ export default function AgentsPage() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
+
+  const { data: agentList = mockAgents, isLoading } = useAgentsQuery("ws_default", {
+    search,
+    category: categoryFilter,
+    status: statusFilter,
+  });
+  const deleteAgentMutation = useDeleteAgentMutation();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const filtered = useMemo(() => {
-    let result = [...agents];
+    let result = [...agentList];
 
     if (search) {
       const q = search.toLowerCase();

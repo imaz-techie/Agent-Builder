@@ -8,19 +8,22 @@ import { Label } from "@/components/ui/label";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { Moon, Sun } from "lucide-react";
 
+import { useForgotPasswordMutation } from "@/hooks/mutations/useAuthMutations";
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const forgotMutation = useForgotPasswordMutation();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSent(true);
-    }, 2000);
+    forgotMutation.mutate(
+      { email },
+      {
+        onSuccess: () => setSent(true),
+      }
+    );
   };
 
   return (
@@ -85,8 +88,8 @@ export default function ForgotPasswordPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
+            <Button type="submit" className="w-full" disabled={forgotMutation.isPending}>
+              {forgotMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Send reset link"

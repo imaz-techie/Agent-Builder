@@ -18,6 +18,14 @@ import {
 
 const router = Router();
 
+// Top-level direct analytics endpoints (unscoped by workspace ID in URL)
+router.get("/analytics/overview", authenticate, asyncHandler(getOverview));
+router.get("/analytics/usage", authenticate, asyncHandler(getUsageTimeSeries));
+router.get("/analytics/distribution", authenticate, asyncHandler(getAgentPerformance));
+router.get("/analytics/agents", authenticate, asyncHandler(getAgentPerformance));
+router.get("/analytics/timeline", authenticate, asyncHandler(getAuditLogs));
+router.get("/analytics/audit-logs", authenticate, asyncHandler(getAuditLogs));
+
 router.use("/workspaces", authenticate);
 
 /**

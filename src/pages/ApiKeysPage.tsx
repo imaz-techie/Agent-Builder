@@ -47,8 +47,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
-import { apiKeys } from "@/lib/mock-data";
+import { apiKeys as mockApiKeys } from "@/lib/mock-data";
 import { formatDate, formatRelativeTime } from "@/lib/utils";
+import { useApiKeysQuery } from "@/hooks/queries/useApiKeyQueries";
+import {
+  useCreateApiKeyMutation,
+  useDeleteApiKeyMutation,
+} from "@/hooks/mutations/useApiKeyMutations";
 
 const permissionColors: Record<string, string> = {
   read: "bg-info/10 text-info",
@@ -57,6 +62,10 @@ const permissionColors: Record<string, string> = {
 };
 
 export default function ApiKeysPage() {
+  const { data: apiKeys = mockApiKeys } = useApiKeysQuery();
+  const createApiKeyMutation = useCreateApiKeyMutation();
+  const deleteApiKeyMutation = useDeleteApiKeyMutation();
+
   const [showNewKey, setShowNewKey] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [showCopied, setShowCopied] = useState<string | null>(null);

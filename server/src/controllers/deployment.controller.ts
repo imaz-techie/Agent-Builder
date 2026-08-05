@@ -4,7 +4,7 @@ import { sendApiResponse } from "../utils/apiResponse";
 
 function getWorkspaceId(req: Request): string {
   const param = req.params.workspaceId || req.params.id;
-  return Array.isArray(param) ? param[0] : param;
+  return (Array.isArray(param) ? param[0] : param) || "ws_default";
 }
 
 export async function createDeployment(req: Request, res: Response) {
