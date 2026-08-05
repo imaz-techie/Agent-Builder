@@ -26,13 +26,45 @@ router.use("/workspaces", authenticate);
  * @openapi
  * /workspaces/{id}/deployments:
  *   post:
- *     summary: Deploy an agent version to an environment
+ *     summary: Deploy Agent to Environment
  *     tags:
- *       - Deployment Manager
+ *       - Agent Deployments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - agentId
+ *             properties:
+ *               agentId: { type: "string", format: "uuid", example: "11111111-1111-1111-1111-111111111111" }
+ *               environment: { type: "string", enum: ["PRODUCTION", "STAGING", "DEVELOPMENT"], example: "PRODUCTION" }
+ *               domain: { type: "string", example: "agent.acme.com" }
+ *     responses:
+ *       201:
+ *         description: Agent deployed
  *   get:
- *     summary: List, filter, and paginate workspace deployments
+ *     summary: List Workspace Deployments
  *     tags:
- *       - Deployment Manager
+ *       - Agent Deployments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Deployments retrieved
  */
 router.post(
   "/workspaces/:id/deployments",
@@ -52,17 +84,59 @@ router.get(
  * @openapi
  * /workspaces/{id}/deployments/{deploymentId}:
  *   get:
- *     summary: Get deployment details
+ *     summary: Get Deployment Details
  *     tags:
- *       - Deployment Manager
+ *       - Agent Deployments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: deploymentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Deployment details retrieved
  *   patch:
- *     summary: Update deployment status, URL, or domain
+ *     summary: Update Deployment Status
  *     tags:
- *       - Deployment Manager
+ *       - Agent Deployments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: deploymentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Deployment updated
  *   delete:
- *     summary: Delete a deployment record
+ *     summary: Delete Deployment
  *     tags:
- *       - Deployment Manager
+ *       - Agent Deployments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: deploymentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Deployment deleted
  */
 router.get(
   "/workspaces/:id/deployments/:deploymentId",
@@ -87,9 +161,23 @@ router.delete(
  * @openapi
  * /workspaces/{id}/deployments/{deploymentId}/rollback:
  *   post:
- *     summary: Roll back an agent deployment to the previous version
+ *     summary: Rollback Deployment to Previous Version
  *     tags:
- *       - Deployment Manager
+ *       - Agent Deployments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: deploymentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Deployment rolled back
  */
 router.post(
   "/workspaces/:id/deployments/:deploymentId/rollback",

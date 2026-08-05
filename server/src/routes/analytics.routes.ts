@@ -24,9 +24,20 @@ router.use("/workspaces", authenticate);
  * @openapi
  * /workspaces/{id}/analytics/overview:
  *   get:
- *     summary: Get high-level workspace analytics overview cards (messages, tokens, cost, latency)
+ *     summary: Get Workspace Analytics Overview Cards
+ *     description: Returns aggregated metrics for total messages, tokens used, estimated USD cost, and average latency MS.
  *     tags:
  *       - Analytics System
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Overview metrics retrieved
  */
 router.get(
   "/workspaces/:id/analytics/overview",
@@ -34,18 +45,72 @@ router.get(
   asyncHandler(getOverview)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/analytics/usage:
+ *   get:
+ *     summary: Get Daily Usage & Cost Time Series
+ *     tags:
+ *       - Analytics System
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Usage time series data retrieved
+ */
 router.get(
   "/workspaces/:id/analytics/usage",
   requireWorkspaceMember(WorkspaceRole.VIEWER),
   asyncHandler(getUsageTimeSeries)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/analytics/agents:
+ *   get:
+ *     summary: Get Agent Performance Metrics Breakdown
+ *     tags:
+ *       - Analytics System
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Agent metrics retrieved
+ */
 router.get(
   "/workspaces/:id/analytics/agents",
   requireWorkspaceMember(WorkspaceRole.VIEWER),
   asyncHandler(getAgentPerformance)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/analytics/audit-logs:
+ *   get:
+ *     summary: List Workspace Audit Logs
+ *     tags:
+ *       - Analytics System
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Audit logs retrieved
+ */
 router.get(
   "/workspaces/:id/analytics/audit-logs",
   requireWorkspaceMember(WorkspaceRole.ADMIN),
@@ -53,6 +118,27 @@ router.get(
   asyncHandler(getAuditLogs)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/analytics/export:
+ *   get:
+ *     summary: Export Analytics Data (CSV / JSON)
+ *     tags:
+ *       - Analytics System
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: format
+ *         in: query
+ *         schema: { type: "string", enum: ["csv", "json"], example: "csv" }
+ *     responses:
+ *       200:
+ *         description: Export file generated
+ */
 router.get(
   "/workspaces/:id/analytics/export",
   requireWorkspaceMember(WorkspaceRole.ADMIN),

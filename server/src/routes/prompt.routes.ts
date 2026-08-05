@@ -17,9 +17,9 @@ import {
   updateTemplate,
   deleteTemplate,
   executePrompt,
+  streamPromptExecution,
   comparePrompts,
   getExecutionHistory,
-  streamPromptExecution,
 } from "../controllers/prompt.controller";
 
 const router = Router();
@@ -27,7 +27,36 @@ const router = Router();
 router.use("/workspaces", authenticate);
 
 /**
- * Prompt Templates
+ * @openapi
+ * /workspaces/{id}/prompts/templates:
+ *   post:
+ *     summary: Create Prompt Template
+ *     tags:
+ *       - Prompt Studio & Playground
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       201:
+ *         description: Template created
+ *   get:
+ *     summary: List Prompt Templates
+ *     tags:
+ *       - Prompt Studio & Playground
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Prompt templates retrieved
  */
 router.post(
   "/workspaces/:id/prompts/templates",
@@ -42,6 +71,64 @@ router.get(
   asyncHandler(getWorkspaceTemplates)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/prompts/templates/{templateId}:
+ *   get:
+ *     summary: Get Template Details
+ *     tags:
+ *       - Prompt Studio & Playground
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: templateId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Template details
+ *   patch:
+ *     summary: Update Template
+ *     tags:
+ *       - Prompt Studio & Playground
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: templateId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Template updated
+ *   delete:
+ *     summary: Delete Template
+ *     tags:
+ *       - Prompt Studio & Playground
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: templateId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Template deleted
+ */
 router.get(
   "/workspaces/:id/prompts/templates/:templateId",
   requireWorkspaceMember(WorkspaceRole.VIEWER),
@@ -62,7 +149,22 @@ router.delete(
 );
 
 /**
- * Playground Execution & Output Comparison
+ * @openapi
+ * /workspaces/{id}/prompts/execute:
+ *   post:
+ *     summary: Execute Single Prompt Test
+ *     tags:
+ *       - Prompt Studio & Playground
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Prompt executed
  */
 router.post(
   "/workspaces/:id/prompts/execute",
@@ -75,9 +177,19 @@ router.post(
  * @openapi
  * /workspaces/{id}/prompts/stream:
  *   get:
- *     summary: Stream prompt execution output as Server-Sent Events (SSE)
+ *     summary: Stream Prompt Execution (SSE)
  *     tags:
- *       - Prompt Studio
+ *       - Prompt Studio & Playground
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Prompt execution stream established
  */
 router.get(
   "/workspaces/:id/prompts/stream",
@@ -85,6 +197,24 @@ router.get(
   asyncHandler(streamPromptExecution)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/prompts/compare:
+ *   post:
+ *     summary: Side-by-Side Prompt Comparison Test
+ *     tags:
+ *       - Prompt Studio & Playground
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Comparison outputs generated
+ */
 router.post(
   "/workspaces/:id/prompts/compare",
   requireWorkspaceMember(WorkspaceRole.MEMBER),
@@ -92,6 +222,24 @@ router.post(
   asyncHandler(comparePrompts)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/prompts/executions:
+ *   get:
+ *     summary: List Execution History
+ *     tags:
+ *       - Prompt Studio & Playground
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Execution logs retrieved
+ */
 router.get(
   "/workspaces/:id/prompts/executions",
   requireWorkspaceMember(WorkspaceRole.VIEWER),

@@ -9,6 +9,7 @@ import { globalRateLimiter } from "./middlewares/rateLimiter";
 import routes from "./routes";
 import { setupSwagger } from "./docs/swagger";
 import { handleStripeWebhook } from "./controllers/billing.controller";
+import { asyncHandler } from "./utils/asyncHandler";
 
 export function createApp(): Express {
   const app = express();
@@ -33,7 +34,7 @@ export function createApp(): Express {
   setupSwagger(app);
 
   // Public Stripe Webhook (no auth - signature verified by Stripe in production)
-  app.post("/webhooks/stripe", handleStripeWebhook);
+  app.post("/webhooks/stripe", asyncHandler(handleStripeWebhook));
 
   // System Routes (Root level /health and /version)
   app.use("/", routes);

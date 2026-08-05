@@ -15,16 +15,12 @@ import {
   addUrlSource,
   getWorkspaceKnowledgeFiles,
   getFileDetails,
-  reindexFile,
   deleteFile,
+  reindexFile,
   searchChunks,
 } from "../controllers/knowledge.controller";
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
-});
-
+const upload = multer({ limits: { fileSize: 25 * 1024 * 1024 } }); // 25MB limit
 const router = Router();
 
 router.use("/workspaces", authenticate);
@@ -33,9 +29,19 @@ router.use("/workspaces", authenticate);
  * @openapi
  * /workspaces/{id}/knowledge/upload:
  *   post:
- *     summary: Upload and index document file (PDF, DOCX, TXT, CSV, JSON, Markdown)
+ *     summary: Upload Document for RAG Ingestion
  *     tags:
- *       - Knowledge Base
+ *       - Knowledge Base RAG
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       201:
+ *         description: File uploaded
  */
 router.post(
   "/workspaces/:id/knowledge/upload",
@@ -48,9 +54,19 @@ router.post(
  * @openapi
  * /workspaces/{id}/knowledge/url:
  *   post:
- *     summary: Ingest web URL document source
+ *     summary: Ingest Web Page URL
  *     tags:
- *       - Knowledge Base
+ *       - Knowledge Base RAG
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       201:
+ *         description: URL ingested
  */
 router.post(
   "/workspaces/:id/knowledge/url",
@@ -61,12 +77,29 @@ router.post(
 
 /**
  * @openapi
- * /workspaces/{id}/knowledge:
+ * /workspaces/{id}/knowledge/files:
  *   get:
- *     summary: List, search, and filter workspace knowledge files
+ *     summary: List Knowledge Base Files
  *     tags:
- *       - Knowledge Base
+ *       - Knowledge Base RAG
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Files retrieved
  */
+router.get(
+  "/workspaces/:id/knowledge/files",
+  requireWorkspaceMember(WorkspaceRole.VIEWER),
+  validate(knowledgeQuerySchema),
+  asyncHandler(getWorkspaceKnowledgeFiles)
+);
+
 router.get(
   "/workspaces/:id/knowledge",
   requireWorkspaceMember(WorkspaceRole.VIEWER),
@@ -75,14 +108,51 @@ router.get(
 );
 
 /**
+ * Search Chunks (Placed BEFORE parametric :fileId route to prevent route collision)
+ */
+/**
  * @openapi
  * /workspaces/{id}/knowledge/search:
  *   get:
- *     summary: Text similarity search across document chunks
+ *     summary: Search Chunks (GET)
  *     tags:
- *       - Knowledge Base
+ *       - Knowledge Base RAG
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: query
+ *         in: query
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Search results
+ *   post:
+ *     summary: Search Chunks (POST)
+ *     tags:
+ *       - Knowledge Base RAG
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Search results
  */
 router.get(
+  "/workspaces/:id/knowledge/search",
+  requireWorkspaceMember(WorkspaceRole.VIEWER),
+  asyncHandler(searchChunks)
+);
+
+router.post(
   "/workspaces/:id/knowledge/search",
   requireWorkspaceMember(WorkspaceRole.VIEWER),
   validate(searchChunksSchema),
@@ -90,17 +160,24 @@ router.get(
 );
 
 /**
- * @openapi
- * /workspaces/{id}/knowledge/{fileId}:
- *   get:
- *     summary: Get document details and indexed chunks
- *   delete:
- *     summary: Delete document and stored chunks
+ * Parametric File Details & Actions
  */
+router.get(
+  "/workspaces/:id/knowledge/files/:fileId",
+  requireWorkspaceMember(WorkspaceRole.VIEWER),
+  asyncHandler(getFileDetails)
+);
+
 router.get(
   "/workspaces/:id/knowledge/:fileId",
   requireWorkspaceMember(WorkspaceRole.VIEWER),
   asyncHandler(getFileDetails)
+);
+
+router.delete(
+  "/workspaces/:id/knowledge/files/:fileId",
+  requireWorkspaceMember(WorkspaceRole.ADMIN),
+  asyncHandler(deleteFile)
 );
 
 router.delete(
@@ -109,16 +186,8 @@ router.delete(
   asyncHandler(deleteFile)
 );
 
-/**
- * @openapi
- * /workspaces/{id}/knowledge/{fileId}/reindex:
- *   post:
- *     summary: Reindex document content and regenerate chunks
- *     tags:
- *       - Knowledge Base
- */
 router.post(
-  "/workspaces/:id/knowledge/:fileId/reindex",
+  "/workspaces/:id/knowledge/files/:fileId/reindex",
   requireWorkspaceMember(WorkspaceRole.MEMBER),
   asyncHandler(reindexFile)
 );

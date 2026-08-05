@@ -11,33 +11,63 @@ import {
 import {
   upsertWidgetConfig,
   getWidgetConfig,
-  updateWidgetConfig,
-  deleteWidgetConfig,
-  publishWidget,
-  regenerateWidgetToken,
   getPublicWidgetConfig,
   sendPublicWidgetMessage,
+  publishWidget,
+  regenerateWidgetToken,
 } from "../controllers/widget.controller";
 
 const router = Router();
 
 /**
+ * Public Embedded Widget Endpoints (No bearer token required)
+ */
+
+/**
  * @openapi
  * /public/widgets/{token}/config:
  *   get:
- *     summary: Get public embeddable widget configuration by token (no auth)
+ *     summary: Get Public Chat Widget Customization & Config
  *     tags:
- *       - Embed Widget
+ *       - Embeddable Chat Widget
+ *     parameters:
+ *       - name: token
+ *         in: path
+ *         required: true
+ *         schema: { type: "string", example: "wt_live_99887766" }
+ *     responses:
+ *       200:
+ *         description: Widget configuration retrieved
  */
 router.get("/public/widgets/:token/config", asyncHandler(getPublicWidgetConfig));
+router.get("/widgets/:token/config", asyncHandler(getPublicWidgetConfig));
 
 /**
  * @openapi
  * /public/widgets/{token}/chat:
  *   post:
- *     summary: Send a chat message from an embedded widget (no auth)
+ *     summary: Public Widget Chat Message Submission
  *     tags:
- *       - Embed Widget
+ *       - Embeddable Chat Widget
+ *     parameters:
+ *       - name: token
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message: { type: "string", example: "Hello, how do I reset my password?" }
+ *               sessionId: { type: "string", example: "public-session-uuid" }
+ *     responses:
+ *       200:
+ *         description: Assistant response generated
  */
 router.post(
   "/public/widgets/:token/chat",
@@ -45,21 +75,101 @@ router.post(
   asyncHandler(sendPublicWidgetMessage)
 );
 
+router.post(
+  "/widgets/:token/chat",
+  validate(publicWidgetChatSchema),
+  asyncHandler(sendPublicWidgetMessage)
+);
+
+/**
+ * Workspace Admin Widget Configuration
+ */
 router.use("/workspaces", authenticate);
 
 /**
  * @openapi
  * /workspaces/{id}/agents/{agentId}/widget:
  *   put:
- *     summary: Create or update the chat widget configuration for an agent
+ *     summary: Save/Upsert Agent Chat Widget Configuration (PUT)
  *     tags:
- *       - Embed Widget
+ *       - Embeddable Chat Widget
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: "string", example: "Customer Support" }
+ *               primaryColor: { type: "string", example: "#3B82F6" }
+ *     responses:
+ *       200:
+ *         description: Widget configuration saved
+ *   post:
+ *     summary: Save/Upsert Agent Chat Widget Configuration (POST)
+ *     tags:
+ *       - Embeddable Chat Widget
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: "string", example: "Customer Support" }
+ *               primaryColor: { type: "string", example: "#3B82F6" }
+ *     responses:
+ *       200:
+ *         description: Widget configuration saved
  *   get:
- *     summary: Get widget configuration for an agent
+ *     summary: Get Agent Chat Widget Configuration
  *     tags:
- *       - Embed Widget
+ *       - Embeddable Chat Widget
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Widget configuration retrieved
  */
 router.put(
+  "/workspaces/:id/agents/:agentId/widget",
+  requireWorkspaceMember(WorkspaceRole.MEMBER),
+  validate(upsertWidgetConfigSchema),
+  asyncHandler(upsertWidgetConfig)
+);
+
+router.post(
   "/workspaces/:id/agents/:agentId/widget",
   requireWorkspaceMember(WorkspaceRole.MEMBER),
   validate(upsertWidgetConfigSchema),
@@ -74,41 +184,25 @@ router.get(
 
 /**
  * @openapi
- * /workspaces/{id}/widgets/{widgetId}:
- *   patch:
- *     summary: Update widget configuration
- *     tags:
- *       - Embed Widget
- *   delete:
- *     summary: Delete widget configuration
- *     tags:
- *       - Embed Widget
- */
-router.patch(
-  "/workspaces/:id/widgets/:widgetId",
-  requireWorkspaceMember(WorkspaceRole.MEMBER),
-  validate(upsertWidgetConfigSchema),
-  asyncHandler(updateWidgetConfig)
-);
-
-router.delete(
-  "/workspaces/:id/widgets/:widgetId",
-  requireWorkspaceMember(WorkspaceRole.ADMIN),
-  asyncHandler(deleteWidgetConfig)
-);
-
-/**
- * @openapi
  * /workspaces/{id}/widgets/{widgetId}/publish:
  *   post:
- *     summary: Publish widget for public embedding
+ *     summary: Publish Widget
  *     tags:
- *       - Embed Widget
- * /workspaces/{id}/widgets/{widgetId}/token:
- *   post:
- *     summary: Regenerate widget security token
- *     tags:
- *       - Embed Widget
+ *       - Embeddable Chat Widget
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: widgetId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Widget published
  */
 router.post(
   "/workspaces/:id/widgets/:widgetId/publish",
@@ -116,6 +210,28 @@ router.post(
   asyncHandler(publishWidget)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/widgets/{widgetId}/token:
+ *   post:
+ *     summary: Regenerate Widget Token
+ *     tags:
+ *       - Embeddable Chat Widget
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: widgetId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Widget token regenerated
+ */
 router.post(
   "/workspaces/:id/widgets/:widgetId/token",
   requireWorkspaceMember(WorkspaceRole.ADMIN),

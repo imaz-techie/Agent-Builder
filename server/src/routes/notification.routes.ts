@@ -11,7 +11,6 @@ import {
   createNotification,
   getUserNotifications,
   getUnreadCount,
-  getNotificationDetails,
   markAsRead,
   markAllAsRead,
   deleteNotification,
@@ -26,55 +25,167 @@ router.use("/notifications", authenticate);
 /**
  * @openapi
  * /notifications:
- *   get:
- *     summary: List current user's notifications (paginated, filterable)
- *     tags:
- *       - Notifications
  *   post:
- *     summary: Create a notification for a user
+ *     summary: Create User Notification
  *     tags:
- *       - Notifications
+ *       - Notifications & Preferences
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - title
+ *             properties:
+ *               userId: { type: "string", example: "user-uuid-111" }
+ *               title: { type: "string", example: "Welcome to Agent Builder" }
+ *     responses:
+ *       201:
+ *         description: Notification created
+ *   get:
+ *     summary: Get User Notifications
+ *     tags:
+ *       - Notifications & Preferences
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notifications list retrieved
  */
-router.get(
-  "/notifications",
-  validate(notificationQuerySchema),
-  asyncHandler(getUserNotifications)
-);
-
 router.post(
   "/notifications",
   validate(createNotificationSchema),
   asyncHandler(createNotification)
 );
 
+router.get(
+  "/notifications",
+  validate(notificationQuerySchema),
+  asyncHandler(getUserNotifications)
+);
+
 /**
  * @openapi
  * /notifications/unread-count:
  *   get:
- *     summary: Get current user's unread notification count
+ *     summary: Get Unread Notification Count
  *     tags:
- *       - Notifications
- * /notifications/read-all:
- *   post:
- *     summary: Mark all notifications as read
- *     tags:
- *       - Notifications
+ *       - Notifications & Preferences
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Unread notification count retrieved
  */
 router.get("/notifications/unread-count", asyncHandler(getUnreadCount));
 
+/**
+ * @openapi
+ * /notifications/read-all:
+ *   post:
+ *     summary: Mark All Notifications as Read (POST)
+ *     tags:
+ *       - Notifications & Preferences
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notifications marked as read
+ *   patch:
+ *     summary: Mark All Notifications as Read (PATCH)
+ *     tags:
+ *       - Notifications & Preferences
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notifications marked as read
+ */
 router.post("/notifications/read-all", asyncHandler(markAllAsRead));
+router.patch("/notifications/read-all", asyncHandler(markAllAsRead));
+
+/**
+ * @openapi
+ * /notifications/{id}/read:
+ *   patch:
+ *     summary: Mark Single Notification as Read
+ *     tags:
+ *       - Notifications & Preferences
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ */
+router.patch("/notifications/:id/read", asyncHandler(markAsRead));
+
+/**
+ * @openapi
+ * /notifications/{id}:
+ *   delete:
+ *     summary: Delete Notification
+ *     tags:
+ *       - Notifications & Preferences
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Notification deleted
+ */
+router.delete("/notifications/:id", asyncHandler(deleteNotification));
 
 /**
  * @openapi
  * /notifications/preferences:
  *   get:
- *     summary: Get current user's notification preferences
+ *     summary: Get Notification Channel Preferences
  *     tags:
- *       - Notifications
+ *       - Notifications & Preferences
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notification preferences retrieved
  *   patch:
- *     summary: Update notification preferences
+ *     summary: Update Notification Channel Preference
  *     tags:
- *       - Notifications
+ *       - Notifications & Preferences
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - preferences
+ *             properties:
+ *               preferences:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     type: { type: "string", enum: ["SYSTEM", "AGENT", "WORKSPACE", "BILLING", "TRAINING", "DEPLOYMENT"], example: "TRAINING" }
+ *                     channel: { type: "string", enum: ["IN_APP", "EMAIL", "WEBHOOK"], example: "EMAIL" }
+ *                     enabled: { type: "boolean", example: true }
+ *     responses:
+ *       200:
+ *         description: Preference updated
  */
 router.get("/notifications/preferences", asyncHandler(getPreferences));
 
@@ -83,28 +194,5 @@ router.patch(
   validate(updateNotificationPreferencesSchema),
   asyncHandler(updatePreferences)
 );
-
-/**
- * @openapi
- * /notifications/{id}:
- *   get:
- *     summary: Get notification details
- *     tags:
- *       - Notifications
- *   delete:
- *     summary: Delete a notification
- *     tags:
- *       - Notifications
- * /notifications/{id}/read:
- *   patch:
- *     summary: Mark a single notification as read
- *     tags:
- *       - Notifications
- */
-router.get("/notifications/:id", asyncHandler(getNotificationDetails));
-
-router.patch("/notifications/:id/read", asyncHandler(markAsRead));
-
-router.delete("/notifications/:id", asyncHandler(deleteNotification));
 
 export default router;

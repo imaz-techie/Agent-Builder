@@ -8,16 +8,15 @@ import {
   createAgentSchema,
   updateAgentSchema,
   agentQuerySchema,
-  cloneAgentSchema,
 } from "../validators/agent.validator";
 import {
   createAgent,
   getWorkspaceAgents,
   getAgentDetails,
   updateAgent,
+  deleteAgent,
   cloneAgent,
   archiveAgent,
-  deleteAgent,
   getAgentVersions,
 } from "../controllers/agent.controller";
 
@@ -29,13 +28,33 @@ router.use("/workspaces", authenticate);
  * @openapi
  * /workspaces/{id}/agents:
  *   post:
- *     summary: Create a new AI agent in workspace
+ *     summary: Create Agent
  *     tags:
- *       - Agents
+ *       - Agent Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       201:
+ *         description: Agent created
  *   get:
- *     summary: List, search, filter, and paginate workspace agents
+ *     summary: List Workspace Agents
  *     tags:
- *       - Agents
+ *       - Agent Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Agents retrieved
  */
 router.post(
   "/workspaces/:id/agents",
@@ -55,11 +74,59 @@ router.get(
  * @openapi
  * /workspaces/{id}/agents/{agentId}:
  *   get:
- *     summary: Get agent details and configuration
+ *     summary: Get Agent Details
+ *     tags:
+ *       - Agent Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Agent details retrieved
  *   patch:
- *     summary: Update agent parameters
+ *     summary: Update Agent
+ *     tags:
+ *       - Agent Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Agent updated
  *   delete:
- *     summary: Delete agent permanently
+ *     summary: Delete Agent
+ *     tags:
+ *       - Agent Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Agent deleted
  */
 router.get(
   "/workspaces/:id/agents/:agentId",
@@ -81,21 +148,83 @@ router.delete(
 );
 
 /**
- * Special Agent Actions (Clone, Archive, Versions)
+ * @openapi
+ * /workspaces/{id}/agents/{agentId}/clone:
+ *   post:
+ *     summary: Clone Agent
+ *     tags:
+ *       - Agent Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       201:
+ *         description: Agent cloned
  */
 router.post(
   "/workspaces/:id/agents/:agentId/clone",
   requireWorkspaceMember(WorkspaceRole.MEMBER),
-  validate(cloneAgentSchema),
   asyncHandler(cloneAgent)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/agents/{agentId}/archive:
+ *   post:
+ *     summary: Archive Agent (Set status INACTIVE)
+ *     tags:
+ *       - Agent Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Agent archived
+ */
 router.post(
   "/workspaces/:id/agents/:agentId/archive",
-  requireWorkspaceMember(WorkspaceRole.ADMIN),
+  requireWorkspaceMember(WorkspaceRole.MEMBER),
   asyncHandler(archiveAgent)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/agents/{agentId}/versions:
+ *   get:
+ *     summary: List Agent Version History
+ *     tags:
+ *       - Agent Management
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: agentId
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Version history retrieved
+ */
 router.get(
   "/workspaces/:id/agents/:agentId/versions",
   requireWorkspaceMember(WorkspaceRole.VIEWER),

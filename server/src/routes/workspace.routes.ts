@@ -1,4 +1,14 @@
 import { Router } from "express";
+import {
+  createWorkspace,
+  getUserWorkspaces,
+  getWorkspaceDetails,
+  updateWorkspace,
+  deleteWorkspace,
+  inviteMember,
+  updateMemberRole,
+  removeMember,
+} from "../controllers/workspace.controller";
 import { asyncHandler } from "../utils/asyncHandler";
 import { validate } from "../middlewares/validate";
 import { authenticate } from "../middlewares/auth.middleware";
@@ -10,73 +20,148 @@ import {
   inviteMemberSchema,
   updateMemberRoleSchema,
 } from "../validators/workspace.validator";
-import {
-  createWorkspace,
-  getUserWorkspaces,
-  getWorkspaceDetails,
-  updateWorkspace,
-  deleteWorkspace,
-  inviteMember,
-  acceptInvite,
-  updateMemberRole,
-  removeMember,
-  getAuditLogs,
-} from "../controllers/workspace.controller";
 
 const router = Router();
 
-// Apply global Bearer token authentication to workspace routes
 router.use("/workspaces", authenticate);
 
 /**
  * @openapi
  * /workspaces:
  *   post:
- *     summary: Create a new workspace
+ *     summary: Create Workspace
+ *     description: Creates a new workspace and sets current user as OWNER.
  *     tags:
  *       - Workspaces
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name: { type: "string", example: "Acme AI Labs" }
+ *               slug: { type: "string", example: "acme-ai-labs" }
+ *     responses:
+ *       201:
+ *         description: Workspace created
  *   get:
- *     summary: List user's accessible workspaces
+ *     summary: List User Workspaces
+ *     description: Returns all workspaces current user has access to.
  *     tags:
  *       - Workspaces
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Workspaces retrieved
  */
-router.post("/workspaces", validate(createWorkspaceSchema), asyncHandler(createWorkspace));
-router.get("/workspaces", asyncHandler(getUserWorkspaces));
+router.post(
+  "/workspaces",
+  validate(createWorkspaceSchema),
+  asyncHandler(createWorkspace)
+);
 
-/**
- * @openapi
- * /workspaces/invites/{token}/accept:
- *   post:
- *     summary: Accept workspace invitation
- *     tags:
- *       - Workspaces
- */
-router.post("/workspaces/invites/:token/accept", asyncHandler(acceptInvite));
+router.get("/workspaces", asyncHandler(getUserWorkspaces));
 
 /**
  * @openapi
  * /workspaces/{id}:
  *   get:
- *     summary: Get workspace details and member roster
+ *     summary: Get Workspace Details
+ *     tags:
+ *       - Workspaces
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Workspace details retrieved
  *   patch:
- *     summary: Update workspace name/logo
+ *     summary: Update Workspace
+ *     tags:
+ *       - Workspaces
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: "string", example: "Updated Acme Labs" }
+ *     responses:
+ *       200:
+ *         description: Workspace updated
  *   delete:
- *     summary: Delete workspace (Owner only)
+ *     summary: Delete Workspace
+ *     tags:
+ *       - Workspaces
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Workspace deleted
  */
-router.get("/workspaces/:id", requireWorkspaceMember(WorkspaceRole.VIEWER), asyncHandler(getWorkspaceDetails));
-router.patch("/workspaces/:id", requireWorkspaceMember(WorkspaceRole.ADMIN), validate(updateWorkspaceSchema), asyncHandler(updateWorkspace));
-router.delete("/workspaces/:id", requireWorkspaceMember(WorkspaceRole.OWNER), asyncHandler(deleteWorkspace));
+router.get(
+  "/workspaces/:id",
+  requireWorkspaceMember(WorkspaceRole.VIEWER),
+  asyncHandler(getWorkspaceDetails)
+);
+
+router.patch(
+  "/workspaces/:id",
+  requireWorkspaceMember(WorkspaceRole.ADMIN),
+  validate(updateWorkspaceSchema),
+  asyncHandler(updateWorkspace)
+);
+
+router.delete(
+  "/workspaces/:id",
+  requireWorkspaceMember(WorkspaceRole.OWNER),
+  asyncHandler(deleteWorkspace)
+);
 
 /**
- * Team Membership & Invitations
+ * Member Management
  */
-router.post("/workspaces/:id/invites", requireWorkspaceMember(WorkspaceRole.ADMIN), validate(inviteMemberSchema), asyncHandler(inviteMember));
-router.patch("/workspaces/:id/members/:userId", requireWorkspaceMember(WorkspaceRole.OWNER), validate(updateMemberRoleSchema), asyncHandler(updateMemberRole));
-router.delete("/workspaces/:id/members/:userId", requireWorkspaceMember(WorkspaceRole.ADMIN), asyncHandler(removeMember));
+router.post(
+  "/workspaces/:id/invites",
+  requireWorkspaceMember(WorkspaceRole.ADMIN),
+  validate(inviteMemberSchema),
+  asyncHandler(inviteMember)
+);
 
-/**
- * Audit Logs
- */
-router.get("/workspaces/:id/audit-logs", requireWorkspaceMember(WorkspaceRole.ADMIN), asyncHandler(getAuditLogs));
+router.patch(
+  "/workspaces/:id/members/:userId",
+  requireWorkspaceMember(WorkspaceRole.ADMIN),
+  validate(updateMemberRoleSchema),
+  asyncHandler(updateMemberRole)
+);
+
+router.delete(
+  "/workspaces/:id/members/:userId",
+  requireWorkspaceMember(WorkspaceRole.ADMIN),
+  asyncHandler(removeMember)
+);
 
 export default router;

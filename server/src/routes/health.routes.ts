@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { asyncHandler } from "../utils/asyncHandler";
 import { getHealth } from "../controllers/health.controller";
+import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
 
@@ -8,12 +8,24 @@ const router = Router();
  * @openapi
  * /health:
  *   get:
- *     summary: System health check endpoint
+ *     summary: System Health Check
+ *     description: Checks operational status of backend API server, database connectivity, and uptime.
  *     tags:
- *       - System
+ *       - System Health
  *     responses:
  *       200:
- *         description: Health status details
+ *         description: Server is healthy and operational
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Health check successful"
+ *               data:
+ *                 status: "healthy"
+ *                 uptime: 124.52
+ *                 timestamp: "2026-08-05T12:00:00.000Z"
+ *                 database: "connected"
+ *               meta: {}
  */
 router.get("/health", asyncHandler(getHealth));
 

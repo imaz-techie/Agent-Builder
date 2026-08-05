@@ -22,9 +22,32 @@ router.use("/workspaces", authenticate);
  * @openapi
  * /workspaces/{id}/rag/query:
  *   post:
- *     summary: Perform hybrid search RAG context retrieval and generate document citations
+ *     summary: Perform Hybrid RAG Search & Generate Document Citations
+ *     description: Combines vector dot product similarity and keyword matching to build LLM context windows with document citations.
  *     tags:
  *       - RAG Engine
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - query
+ *             properties:
+ *               query: { type: "string", example: "What is the company refund policy?" }
+ *               topK: { type: "integer", example: 3 }
+ *               maxTokensContext: { type: "integer", example: 2048 }
+ *     responses:
+ *       200:
+ *         description: RAG context and citations generated
  */
 router.post(
   "/workspaces/:id/rag/query",
@@ -37,9 +60,29 @@ router.post(
  * @openapi
  * /workspaces/{id}/rag/embeddings:
  *   post:
- *     summary: Generate 1536-dimensional text vector embedding
+ *     summary: Generate 1536-Dimensional Text Vector Embedding
  *     tags:
  *       - RAG Engine
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - text
+ *             properties:
+ *               text: { type: "string", example: "Hello Vector Embedding" }
+ *     responses:
+ *       200:
+ *         description: Embedding vector generated
  */
 router.post(
   "/workspaces/:id/rag/embeddings",
@@ -52,9 +95,19 @@ router.post(
  * @openapi
  * /workspaces/{id}/rag/logs:
  *   get:
- *     summary: View RAG query history logs and metrics
+ *     summary: List RAG Query History Logs
  *     tags:
  *       - RAG Engine
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: RAG query logs retrieved
  */
 router.get(
   "/workspaces/:id/rag/logs",

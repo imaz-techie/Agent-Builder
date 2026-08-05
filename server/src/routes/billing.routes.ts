@@ -4,18 +4,13 @@ import { validate } from "../middlewares/validate";
 import { authenticate } from "../middlewares/auth.middleware";
 import { requireWorkspaceMember } from "../middlewares/workspace.middleware";
 import { WorkspaceRole } from "@prisma/client";
-import {
-  updatePlanSchema,
-  billingQuerySchema,
-  recordUsageSchema,
-} from "../validators/billing.validator";
+import { updatePlanSchema, recordUsageSchema } from "../validators/billing.validator";
 import {
   getAccount,
   updatePlan,
   getInvoices,
   getUsageSummary,
   recordUsage,
-  createCheckoutSession,
 } from "../controllers/billing.controller";
 
 const router = Router();
@@ -26,9 +21,20 @@ router.use("/workspaces", authenticate);
  * @openapi
  * /workspaces/{id}/billing/account:
  *   get:
- *     summary: Get workspace billing account and subscription details
+ *     summary: Get Workspace Billing Account & Plan Quota
+ *     description: Returns current subscription tier, monthly token limits, active seats, and current spending USD.
  *     tags:
  *       - Billing & Subscriptions
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Billing details retrieved
  */
 router.get(
   "/workspaces/:id/billing/account",
@@ -40,14 +46,29 @@ router.get(
  * @openapi
  * /workspaces/{id}/billing/plan:
  *   patch:
- *     summary: Upgrade or downgrade subscription plan
+ *     summary: Upgrade or Update Subscription Plan
  *     tags:
  *       - Billing & Subscriptions
- * /workspaces/{id}/billing/checkout:
- *   post:
- *     summary: Create a simulated Stripe checkout session for a plan
- *     tags:
- *       - Billing & Subscriptions
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - plan
+ *             properties:
+ *               plan: { type: "string", enum: ["FREE", "PRO", "BUSINESS", "ENTERPRISE"], example: "PRO" }
+ *     responses:
+ *       200:
+ *         description: Subscription updated
  */
 router.patch(
   "/workspaces/:id/billing/plan",
@@ -56,33 +77,55 @@ router.patch(
   asyncHandler(updatePlan)
 );
 
-router.post(
-  "/workspaces/:id/billing/checkout",
+router.patch(
+  "/workspaces/:id/billing/subscription",
   requireWorkspaceMember(WorkspaceRole.ADMIN),
   validate(updatePlanSchema),
-  asyncHandler(createCheckoutSession)
+  asyncHandler(updatePlan)
 );
 
 /**
  * @openapi
  * /workspaces/{id}/billing/invoices:
  *   get:
- *     summary: List paginated workspace invoices
+ *     summary: List Workspace Billing Invoices
  *     tags:
  *       - Billing & Subscriptions
- * /workspaces/{id}/billing/usage:
- *   get:
- *     summary: Get current period token usage and cost summary
- *     tags:
- *       - Billing & Subscriptions
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Invoices list retrieved
  */
 router.get(
   "/workspaces/:id/billing/invoices",
   requireWorkspaceMember(WorkspaceRole.VIEWER),
-  validate(billingQuerySchema),
   asyncHandler(getInvoices)
 );
 
+/**
+ * @openapi
+ * /workspaces/{id}/billing/usage:
+ *   get:
+ *     summary: List Detailed Token Usage Summary
+ *     tags:
+ *       - Billing & Subscriptions
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: Usage records retrieved
+ */
 router.get(
   "/workspaces/:id/billing/usage",
   requireWorkspaceMember(WorkspaceRole.VIEWER),
@@ -93,9 +136,31 @@ router.get(
  * @openapi
  * /workspaces/{id}/billing/usage/record:
  *   post:
- *     summary: Record LLM token usage against the billing account
+ *     summary: Record Token Usage Event
  *     tags:
  *       - Billing & Subscriptions
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - model
+ *               - tokensUsed
+ *             properties:
+ *               model: { type: "string", example: "GPT_4O" }
+ *               tokensUsed: { type: "integer", example: 1000 }
+ *     responses:
+ *       200:
+ *         description: Usage recorded
  */
 router.post(
   "/workspaces/:id/billing/usage/record",

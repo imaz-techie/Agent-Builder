@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { logger } from "../utils/logger";
 
 declare global {
@@ -7,6 +7,29 @@ declare global {
 }
 
 export let isDbConnected = false;
+
+let dbUnavailableLogged = false;
+
+export function isDbConnectionError(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return ["P1000", "P1001", "P1002", "P1003"].includes(error.code);
+  }
+  return (
+    error instanceof Error &&
+    /Can't reach database server|Connection refused|ECONNREFUSED|ENOTFOUND/.test(
+      error.message
+    )
+  );
+}
+
+export function logDbUnavailableOnce(): void {
+  if (!dbUnavailableLogged) {
+    dbUnavailableLogged = true;
+    logger.warn(
+      "⚠️ Database offline: requests that require the database will return 503 until PostgreSQL is reachable."
+    );
+  }
+}
 
 export const prisma =
   global.prismaGlobal ||
@@ -22,6 +45,7 @@ export async function connectDatabase() {
   try {
     await prisma.$connect();
     isDbConnected = true;
+    dbUnavailableLogged = false;
     logger.info("Successfully connected to PostgreSQL database via Prisma");
   } catch (error) {
     isDbConnected = false;
