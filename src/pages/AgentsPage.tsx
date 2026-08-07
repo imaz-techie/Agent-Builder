@@ -37,10 +37,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { agents as mockAgents } from "@/lib/mock-data";
 import type { Agent } from "@/types/agent.types";
+import { formatModelLabel } from "@/types/agent.types";
 import { useAgentsQuery } from "@/hooks/queries/useAgentQueries";
-import { useDeleteAgentMutation } from "@/hooks/mutations/useAgentMutations";
 import {
   formatNumber,
   getStatusColor,
@@ -62,17 +61,18 @@ const categoryFilters: { label: string; values: string[] }[] = [
 ];
 
 const statusFilters: { label: string; value: string }[] = [
-  { label: "Active", value: "active" },
-  { label: "Training", value: "training" },
-  { label: "Draft", value: "draft" },
-  { label: "Archived", value: "inactive" },
+  { label: "Active", value: "ACTIVE" },
+  { label: "Training", value: "TRAINING" },
+  { label: "Draft", value: "DRAFT" },
+  { label: "Archived", value: "INACTIVE" },
 ];
 
 const displayStatus: Record<string, string> = {
-  active: "Active",
-  training: "Training",
-  draft: "Draft",
-  inactive: "Archived",
+  ACTIVE: "Active",
+  TRAINING: "Training",
+  DRAFT: "Draft",
+  INACTIVE: "Archived",
+  DEPLOYING: "Deploying",
 };
 
 const sortLabels: Record<SortField, string> = {
@@ -86,7 +86,9 @@ function compareAgents(a: Agent, b: Agent, field: SortField, dir: SortDir): numb
   let cmp = 0;
   if (field === "name") cmp = a.name.localeCompare(b.name);
   else if (field === "lastTraining")
-    cmp = new Date(a.lastTraining).getTime() - new Date(b.lastTraining).getTime();
+    cmp =
+      new Date(a.lastTrainingAt || 0).getTime() -
+      new Date(b.lastTrainingAt || 0).getTime();
   else if (field === "createdAt")
     cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   else if (field === "totalChats") cmp = a.totalChats - b.totalChats;
@@ -102,12 +104,11 @@ export default function AgentsPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
 
-  const { data: agentList = mockAgents, isLoading } = useAgentsQuery("ws_default", {
-    search,
-    category: categoryFilter,
-    status: statusFilter,
-  });
-  const deleteAgentMutation = useDeleteAgentMutation();
+  const {
+    data: agentList = [],
+    isLoading,
+    isError,
+  } = useAgentsQuery({ limit: 100 });
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const filtered = useMemo(() => {
@@ -120,7 +121,7 @@ export default function AgentsPage() {
           a.name.toLowerCase().includes(q) ||
           a.category.toLowerCase().includes(q) ||
           a.description.toLowerCase().includes(q) ||
-          a.owner.toLowerCase().includes(q)
+          a.tags.some((t) => t.toLowerCase().includes(q))
       );
     }
 
@@ -363,7 +364,7 @@ export default function AgentsPage() {
                       {displayStatus[agent.status] ?? agent.status}
                     </Badge>
                     <Badge variant="secondary" className="text-[10px]">
-                      {agent.model}
+                      {formatModelLabel(agent.model)}
                     </Badge>
                   </div>
 
@@ -373,16 +374,17 @@ export default function AgentsPage() {
                       {formatNumber(agent.totalChats)}
                     </div>
                     <span className="text-[10px] text-muted-foreground">
-                      v{agent.version}
+                      v{agent.currentVersion}
                     </span>
                     <span className="text-[10px] text-muted-foreground ml-auto truncate">
-                      {agent.owner}
+                      {agent.tags.slice(0, 2).join(", ") || "—"}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-2">
                     <Clock className="h-3 w-3" />
-                    Last active: {formatRelativeTime(agent.lastTraining)}
+                    Last active:{" "}
+                    {agent.lastTrainingAt ? formatRelativeTime(agent.lastTrainingAt) : "Never"}
                   </div>
                 </CardContent>
               </Card>
@@ -482,7 +484,7 @@ export default function AgentsPage() {
                       </td>
                       <td className="p-3">
                         <Badge variant="secondary" className="text-[10px]">
-                          {agent.model}
+                          {formatModelLabel(agent.model)}
                         </Badge>
                       </td>
                       <td className="p-3">
@@ -494,7 +496,7 @@ export default function AgentsPage() {
                         </Badge>
                       </td>
                       <td className="p-3 text-xs text-muted-foreground">
-                        v{agent.version}
+                        v{agent.currentVersion}
                       </td>
                       <td className="p-3 text-right text-xs text-muted-foreground">
                         {formatNumber(agent.totalChats)}
@@ -503,7 +505,7 @@ export default function AgentsPage() {
                         {formatDate(agent.createdAt)}
                       </td>
                       <td className="p-3 text-xs text-muted-foreground">
-                        {agent.owner}
+                        {agent.tags.slice(0, 2).join(", ") || "—"}
                       </td>
                       <td className="p-3">
                         <DropdownMenu>
@@ -551,7 +553,7 @@ export default function AgentsPage() {
       )}
 
       {/* Empty State */}
-      {paged.length === 0 && (
+      {!isLoading && !isError && paged.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center mb-4">
             <Search className="h-5 w-5 text-muted-foreground" />
@@ -559,6 +561,27 @@ export default function AgentsPage() {
           <p className="text-sm font-medium">No agents found</p>
           <p className="text-xs text-muted-foreground mt-1">
             Try adjusting your search or filter criteria.
+          </p>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+          <p className="text-sm font-medium">Loading agents...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {isError && !isLoading && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center mb-4">
+            <Search className="h-5 w-5 text-destructive" />
+          </div>
+          <p className="text-sm font-medium">Failed to load agents</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            The backend API could not be reached. Please check your connection and try again.
           </p>
         </div>
       )}

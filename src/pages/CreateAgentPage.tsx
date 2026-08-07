@@ -74,14 +74,7 @@ const steps = [
 ];
 
 const categories = ["Support", "Sales", "Marketing", "Technical", "General"];
-const models = [
-  "GPT-4o",
-  "GPT-4o Mini",
-  "Claude 3.5 Sonnet",
-  "Claude 3 Haiku",
-  "Gemini 1.5 Pro",
-  "Llama 3.1 70B",
-];
+const models = MODEL_OPTIONS;
 const tones = ["Professional", "Friendly", "Casual", "Formal", "Empathetic"];
 const writingStyles = ["Concise", "Detailed", "Technical", "Simple"];
 const responseLengths = ["Short", "Medium", "Long"];
@@ -199,7 +192,8 @@ const slideVariants = {
 };
 
 import { useCreateAgentMutation } from "@/hooks/mutations/useAgentMutations";
-import type { AgentCategory } from "@/types/agent.types";
+import { MODEL_OPTIONS } from "@/types/agent.types";
+import type { LlmModel } from "@/types/agent.types";
 
 export default function CreateAgentPage() {
   const [step, setStep] = useState(1);
@@ -268,10 +262,17 @@ export default function CreateAgentPage() {
       {
         name: data.name,
         description: data.description,
-        category: (data.category || "Customer Support") as AgentCategory,
-        model: data.model || "GPT-4o",
+        category: data.category || "Customer Support",
+        model: (data.model || "GPT_4O") as LlmModel,
         temperature: data.temperature,
         maxTokens: data.maxTokens,
+        systemPrompt: "You are a helpful AI assistant.",
+        tags: data.tags
+          ? data.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : undefined,
       },
       {
         onSuccess: () => {
@@ -492,8 +493,8 @@ export default function CreateAgentPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {models.map((m) => (
-                              <SelectItem key={m} value={m}>
-                                {m}
+                              <SelectItem key={m.value} value={m.value}>
+                                {m.label}
                               </SelectItem>
                             ))}
                           </SelectContent>

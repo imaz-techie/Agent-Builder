@@ -1,40 +1,37 @@
-export interface DashboardStats {
-  totalAgents: number;
-  activeChats: number;
-  totalConversations: number;
+export interface AnalyticsOverview {
+  totalChats: number;
   totalTokens: number;
-  monthlyCost: number;
-  uptime: number;
-  avgResponseTime: number;
-  satisfactionScore: number;
+  totalCostUsd: number;
+  avgLatencyMs: number;
+  activeAgentsCount: number;
+  totalKnowledgeFiles: number;
 }
 
-export interface MonthlyUsage {
-  month: string;
-  conversations: number;
+export interface UsageTimeSeriesPoint {
+  date: string;
+  chats: number;
   tokens: number;
-  cost: number;
+  costUsd: number;
+  avgLatencyMs: number;
 }
 
-export interface AgentDistribution {
-  name: string;
-  value: number;
-  color: string;
+export interface AgentPerformance {
+  agentId: string;
+  agentName: string;
+  model: string;
+  status: string;
+  totalChats: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+  avgLatencyMs: number;
 }
 
-export type ActivityType =
-  | "agent_created"
-  | "deployment"
-  | "training"
-  | "knowledge_update"
-  | "user_signup"
-  | "config_change"
-  | "billing"
-  | "alert";
-
-export interface ActivityTimelineItem {
+export interface AuditLogEntry {
   id: string;
-  type: ActivityType;
-  message: string;
-  time: string;
+  userId: string | null;
+  workspaceId: string | null;
+  action: string;
+  ipAddress: string | null;
+  metadata: unknown;
+  createdAt: string;
 }

@@ -15,8 +15,6 @@ import {
   CreditCard,
   Settings,
   HelpCircle,
-  ChevronLeft,
-  ChevronRight,
   Search,
   Bell,
   Sun,
@@ -31,7 +29,6 @@ import {
   Crown,
   PanelLeftClose,
   PanelLeft,
-  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/layout/ThemeProvider";
@@ -53,7 +50,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { notifications } from "@/lib/mock-data";
+import { useProfileQuery } from "@/hooks/queries/useAuthQueries";
+import {
+  useWorkspacesQuery,
+  useActiveWorkspaceId,
+} from "@/hooks/queries/useWorkspaceQueries";
+import { setActiveWorkspaceId } from "@/lib/workspace-id";
+import { STORAGE_KEYS } from "@/constants/api.constants";
 
 const SIDEBAR_WIDTH = 260;
 const SIDEBAR_COLLAPSED_WIDTH = 68;
@@ -114,8 +117,6 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const flatNavItems = navGroups.flatMap((g) => g.items);
-
 function SidebarNavItem({
   item,
   collapsed,
@@ -133,7 +134,7 @@ function SidebarNavItem({
               "relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-200 group",
               collapsed && "justify-center px-0 py-2.5",
               isActive
-                ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary shadow-sm"
+                ? "bg-gradient-to-linear-r from-primary/15 to-primary/5 text-primary shadow-sm"
                 : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
             )
           }
@@ -257,7 +258,7 @@ function MobileSidebar({
           >
             <div className="flex items-center justify-between px-4 h-16 border-b border-border">
               <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25">
+                <div className="h-8 w-8 rounded-xl bg-gradient-to-linear-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25">
                   <Sparkles className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex flex-col">
@@ -294,7 +295,42 @@ function MobileSidebar({
 function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const { data: workspaces = [] } = useWorkspacesQuery();
+  const activeWorkspaceId = useActiveWorkspaceId();
+  const activeWorkspace =
+    workspaces.find((w) => w.id === activeWorkspaceId) ?? workspaces[0];
+
+  const { data: userProfile } = useProfileQuery();
+
+  const switchWorkspace = (workspaceId: string) => {
+    if (workspaceId === activeWorkspaceId) return;
+    setActiveWorkspaceId(workspaceId);
+    window.location.reload();
+  };
+
+  const getStoredUser = () => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEYS.USER_DATA);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const storedUser = getStoredUser();
+  const user = userProfile || storedUser;
+
+  const userName = user?.name || "Imaz";
+  const userEmail = user?.email || "imaz@agentmax.ai";
+  const userRole = user?.role || "Admin";
+
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
   return (
     <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/80 backdrop-blur-xl flex items-center px-4 lg:px-5 gap-3">
@@ -327,28 +363,46 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
               size="sm"
               className="hidden sm:flex gap-2 h-9 px-2.5 rounded-xl"
             >
-              <div className="h-5 w-5 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <div className="h-5 w-5 rounded-md bg-gradient-to-linear-br from-primary to-secondary flex items-center justify-center">
                 <Sparkles className="h-3 w-3 text-white" />
               </div>
-              <span className="text-sm font-medium">AgentMax</span>
+              <span className="text-sm font-medium">
+                {activeWorkspace?.name ?? "AgentMax"}
+              </span>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
             <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="bg-primary/10 text-primary gap-2.5">
-              <div className="h-5 w-5 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Sparkles className="h-3 w-3 text-white" />
-              </div>
-              AgentMax Workspace
-            </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2.5">
-              <div className="h-5 w-5 rounded-md bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
-                T
-              </div>
-              Team Workspace
-            </DropdownMenuItem>
+            {workspaces.length === 0 ? (
+              <DropdownMenuItem disabled>
+                No workspaces available
+              </DropdownMenuItem>
+            ) : (
+              workspaces.map((workspace) => (
+                <DropdownMenuItem
+                  key={workspace.id}
+                  className={cn(
+                    "gap-2.5",
+                    workspace.id === activeWorkspaceId && "bg-primary/10 text-primary",
+                  )}
+                  onClick={() => switchWorkspace(workspace.id)}
+                >
+                  <div
+                    className={cn(
+                      "h-5 w-5 rounded-md flex items-center justify-center text-xs font-bold",
+                      workspace.id === activeWorkspaceId
+                        ? "bg-gradient-to-linear-br from-primary to-secondary text-white"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {workspace.name.charAt(0).toUpperCase()}
+                  </div>
+                  {workspace.name}
+                </DropdownMenuItem>
+              ))
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-primary gap-2.5">
               <Zap className="h-4 w-4" />
@@ -365,49 +419,24 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
               className="relative h-9 w-9 rounded-xl"
             >
               <Bell className="h-[18px] w-[18px]" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1 ring-2 ring-background">
-                  {unreadCount}
-                </span>
-              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
             <DropdownMenuLabel className="flex items-center justify-between">
               <span>Notifications</span>
               <Badge variant="secondary" className="text-[10px]">
-                {unreadCount} new
+                0 new
               </Badge>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {notifications.slice(0, 5).map((notif) => (
-              <DropdownMenuItem
-                key={notif.id}
-                className="flex flex-col items-start gap-1.5 py-2.5 px-3 cursor-pointer"
-              >
-                <div className="flex items-center gap-2 w-full">
-                  <div
-                    className={cn(
-                      "h-2 w-2 rounded-full shrink-0",
-                      notif.type === "error" && "bg-destructive",
-                      notif.type === "warning" && "bg-warning",
-                      notif.type === "success" && "bg-success",
-                      notif.type === "info" && "bg-info",
-                      notif.read && "bg-muted-foreground/30",
-                    )}
-                  />
-                  <span className="text-sm font-medium truncate">
-                    {notif.title}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-1 pl-4">
-                  {notif.message}
-                </p>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-center justify-center text-sm text-primary font-medium">
-              View all notifications
+            <DropdownMenuItem disabled className="flex flex-col items-center gap-1.5 py-6 px-3">
+              <Bell className="h-6 w-6 text-muted-foreground/40" />
+              <span className="text-sm font-medium text-muted-foreground">
+                No notifications yet
+              </span>
+              <span className="text-xs text-muted-foreground/70">
+                System alerts and agent activity will appear here.
+              </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -438,16 +467,16 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
               className="gap-2 px-1.5 h-9 rounded-xl"
             >
               <Avatar className="h-7 w-7">
-                <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-[11px] font-bold">
-                  SC
+                <AvatarFallback className="bg-gradient-to-linear-br from-primary to-secondary text-white text-[11px] font-bold">
+                  {getInitials(userName)}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden sm:flex flex-col items-start">
                 <span className="text-sm font-medium leading-tight">
-                  Sarah Chen
+                  {userName}
                 </span>
-                <span className="text-[10px] text-muted-foreground leading-tight">
-                  Admin
+                <span className="text-[10px] text-muted-foreground leading-tight capitalize">
+                  {userRole}
                 </span>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
@@ -456,9 +485,9 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col gap-0.5">
-                <span className="font-medium">Sarah Chen</span>
+                <span className="font-medium">{userName}</span>
                 <span className="text-xs font-normal text-muted-foreground">
-                  sarah@agentmax.ai
+                  {userEmail}
                 </span>
               </div>
             </DropdownMenuLabel>
@@ -523,7 +552,7 @@ export default function AppLayout() {
               collapsed ? "justify-center px-2" : "px-4 gap-3",
             )}
           >
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+            <div className="h-8 w-8 rounded-xl bg-gradient-to-linear-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <AnimatePresence mode="wait">
@@ -597,7 +626,7 @@ export default function AppLayout() {
                 >
                   <div className="relative shrink-0">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs font-bold">
+                      <AvatarFallback className="bg-gradient-to-linear-br from-primary to-secondary text-white text-xs font-bold">
                         SC
                       </AvatarFallback>
                     </Avatar>

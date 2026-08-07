@@ -4,41 +4,31 @@ import {
   Download,
   ArrowUpRight,
   Zap,
-  Users,
-  MessageSquare,
+  Coins,
   HardDrive,
   Plus,
   Receipt,
   Star,
   Building2,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { invoices as mockInvoices } from "@/lib/mock-data";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
-import { useInvoicesQuery } from "@/hooks/queries/useBillingQueries";
+import {
+  useBillingAccountQuery,
+  useInvoicesQuery,
+  useUsageSummaryQuery,
+  useUpdatePlanMutation,
+} from "@/hooks/queries/useBillingQueries";
 
 const plans = [
   {
-    name: "Starter",
-    price: 9,
-    description: "For individuals and small teams getting started.",
-    features: [
-      "5 agents",
-      "10,000 conversations/mo",
-      "Basic analytics",
-      "Email support",
-      "1 GB storage",
-    ],
-    icon: Zap,
-    highlighted: false,
-  },
-  {
-    name: "Professional",
+    name: "PRO",
     price: 49,
     description: "For growing teams that need more power and flexibility.",
     features: [
@@ -51,57 +41,86 @@ const plans = [
       "API access",
     ],
     icon: Star,
-    highlighted: true,
-    current: true,
   },
   {
-    name: "Enterprise",
+    name: "BUSINESS",
     price: 99,
-    description: "For organizations with advanced needs and compliance.",
+    description: "For organizations with advanced needs and scale.",
     features: [
-      "Unlimited agents",
-      "Unlimited conversations",
+      "100 agents",
+      "1,000,000 conversations/mo",
       "Full analytics suite",
       "24/7 dedicated support",
       "100 GB storage",
       "Custom models",
       "Full API access",
       "SSO & SAML",
-      "SLA guarantee",
     ],
     icon: Building2,
-    highlighted: false,
+  },
+  {
+    name: "ENTERPRISE",
+    price: 299,
+    description: "For organizations that need custom solutions and compliance.",
+    features: [
+      "Unlimited agents",
+      "Unlimited conversations",
+      "Full analytics suite",
+      "24/7 dedicated support",
+      "Unlimited storage",
+      "Custom models",
+      "Full API access",
+      "SSO & SAML",
+      "SLA guarantee",
+    ],
+    icon: Zap,
   },
 ];
 
-const usageStats = [
-  {
-    label: "Agents",
-    used: 15,
-    max: 25,
-    icon: Users,
-    color: "bg-primary",
-  },
-  {
-    label: "Conversations",
-    used: 67000,
-    max: 100000,
-    icon: MessageSquare,
-    color: "bg-secondary",
-    format: "compact" as const,
-  },
-  {
-    label: "Storage",
-    used: 4.2,
-    max: 10,
-    icon: HardDrive,
-    color: "bg-accent",
-    format: "gb" as const,
-  },
-];
+interface UsageStat {
+  label: string;
+  used: number;
+  max: number;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  format?: "compact" | "currency";
+}
 
 export default function BillingPage() {
-  const { data: invoices = mockInvoices } = useInvoicesQuery();
+  const { data: account, isLoading } = useBillingAccountQuery();
+  const { data: summary } = useUsageSummaryQuery();
+  const { data: invoices = [] } = useInvoicesQuery();
+  const updatePlanMutation = useUpdatePlanMutation();
+
+  const currentPlan = account?.plan || summary?.plan || "PRO";
+
+  const usageStats: UsageStat[] = [
+    {
+      label: "Token Usage",
+      used: summary?.tokensUsed ?? 0,
+      max: summary?.monthlyTokenQuota ?? 0,
+      icon: Coins,
+      color: "bg-primary",
+      format: "compact",
+    },
+    {
+      label: "Tokens Remaining",
+      used: summary?.tokensRemaining ?? 0,
+      max: summary?.monthlyTokenQuota ?? 0,
+      icon: HardDrive,
+      color: "bg-secondary",
+      format: "compact",
+    },
+    {
+      label: "Est. Cost",
+      used: summary?.estCostUsd ?? 0,
+      max: Math.max(summary?.pricePerMonthUsd ?? 1, summary?.estCostUsd ?? 0),
+      icon: CreditCard,
+      color: "bg-accent",
+      format: "currency",
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -114,6 +133,12 @@ export default function BillingPage() {
         </p>
       </motion.div>
 
+      {isLoading && (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -125,11 +150,21 @@ export default function BillingPage() {
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <div className="flex items-center gap-3">
-                  <CardTitle className="text-xl">Professional Plan</CardTitle>
-                  <Badge className="bg-primary/10 text-primary border-primary/20">Current</Badge>
+                  <CardTitle className="text-xl">
+                    {summary?.planName || currentPlan} Plan
+                  </CardTitle>
+                  <Badge className="bg-primary/10 text-primary border-primary/20 capitalize">
+                    {account?.status?.toLowerCase() || "Active"}
+                  </Badge>
                 </div>
                 <CardDescription className="mt-1">
-                  Billed monthly at {formatCurrency(149)}/mo
+                  Billed monthly at {formatCurrency(summary?.pricePerMonthUsd ?? 0)}/mo
+                  {summary ? (
+                    <>
+                      {" "}
+                      &middot; {formatDate(summary.periodStart)} &ndash; {formatDate(summary.periodEnd)}
+                    </>
+                  ) : null}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -147,26 +182,20 @@ export default function BillingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {usageStats.map((stat) => {
                 const percentage =
-                  typeof stat.used === "number" && typeof stat.max === "number"
-                    ? stat.format === "compact"
-                      ? (stat.used / stat.max) * 100
-                      : stat.format === "gb"
-                        ? (stat.used / stat.max) * 100
-                        : (stat.used / stat.max) * 100
-                    : 0;
+                  stat.max > 0 ? Math.min(100, (stat.used / stat.max) * 100) : 0;
 
                 const displayUsed =
                   stat.format === "compact"
-                    ? `${(stat.used / 1000).toFixed(0)}K`
-                    : stat.format === "gb"
-                      ? `${stat.used}GB`
+                    ? formatNumberCompact(stat.used)
+                    : stat.format === "currency"
+                      ? formatCurrency(stat.used)
                       : stat.used;
 
                 const displayMax =
                   stat.format === "compact"
-                    ? `${(stat.max / 1000).toFixed(0)}K`
-                    : stat.format === "gb"
-                      ? `${stat.max}GB`
+                    ? formatNumberCompact(stat.max)
+                    : stat.format === "currency"
+                      ? formatCurrency(stat.max)
                       : stat.max;
 
                 return (
@@ -197,60 +226,66 @@ export default function BillingPage() {
       <div>
         <h2 className="text-lg font-semibold mb-4">Available Plans</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {plans.map((plan, i) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 + i * 0.05 }}
-            >
-              <Card
-                className={`relative h-full ${
-                  plan.current
-                    ? "border-primary shadow-lg ring-1 ring-primary/20"
-                    : ""
-                }`}
+          {plans.map((plan, i) => {
+            const isCurrent = currentPlan === plan.name;
+            return (
+              <motion.div
+                key={plan.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 + i * 0.05 }}
               >
-                {plan.current && (
-                  <div className="absolute -top-2.5 left-4">
-                    <Badge className="text-[10px] px-2">Current Plan</Badge>
-                  </div>
-                )}
-                <CardContent className="p-6 flex flex-col h-full">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <plan.icon className="h-4 w-4 text-primary" />
+                <Card
+                  className={`relative h-full ${
+                    isCurrent
+                      ? "border-primary shadow-lg ring-1 ring-primary/20"
+                      : ""
+                  }`}
+                >
+                  {isCurrent && (
+                    <div className="absolute -top-2.5 left-4">
+                      <Badge className="text-[10px] px-2">Current Plan</Badge>
                     </div>
-                    <h3 className="font-semibold">{plan.name}</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-4">{plan.description}</p>
-                  <p className="text-3xl font-bold mb-1">
-                    {formatCurrency(plan.price)}
-                    <span className="text-sm font-normal text-muted-foreground">/mo</span>
-                  </p>
-                  <Separator className="my-4" />
-                  <ul className="space-y-2.5 mb-6 flex-1">
-                    {plan.features.map((f) => (
-                      <li
-                        key={f}
-                        className="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    variant={plan.current ? "outline" : "default"}
-                    className="w-full"
-                    disabled={plan.current}
-                  >
-                    {plan.current ? "Current Plan" : "Upgrade"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                  )}
+                  <CardContent className="p-6 flex flex-col h-full">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <plan.icon className="h-4 w-4 text-primary" />
+                      </div>
+                      <h3 className="font-semibold">{plan.name}</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-4">{plan.description}</p>
+                    <p className="text-3xl font-bold mb-1">
+                      {formatCurrency(plan.price)}
+                      <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                    </p>
+                    <Separator className="my-4" />
+                    <ul className="space-y-2.5 mb-6 flex-1">
+                      {plan.features.map((f) => (
+                        <li
+                          key={f}
+                          className="flex items-center gap-2 text-sm text-muted-foreground"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      variant={isCurrent ? "outline" : "default"}
+                      className="w-full"
+                      disabled={isCurrent || updatePlanMutation.isPending}
+                      onClick={() => {
+                        if (!isCurrent) updatePlanMutation.mutate(plan.name);
+                      }}
+                    >
+                      {isCurrent ? "Current Plan" : "Upgrade"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
@@ -329,6 +364,13 @@ export default function BillingPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {invoices.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-sm text-muted-foreground">
+                        No invoices yet.
+                      </td>
+                    </tr>
+                  )}
                   {invoices.map((inv, i) => (
                     <motion.tr
                       key={inv.id}
@@ -338,11 +380,11 @@ export default function BillingPage() {
                       className="border-b border-border last:border-0 group"
                     >
                       <td className="py-4 pr-4">
-                        <span className="text-sm">{formatDate(inv.date)}</span>
+                        <span className="text-sm">{formatDate(inv.issuedAt)}</span>
                       </td>
                       <td className="py-4 pr-4">
                         <span className="text-sm font-semibold">
-                          {formatCurrency(inv.amount)}
+                          {formatCurrency(Number(inv.amountUsd))}
                         </span>
                       </td>
                       <td className="py-4 pr-4">
@@ -350,15 +392,18 @@ export default function BillingPage() {
                           variant="outline"
                           className={`text-[10px] capitalize ${getStatusColor(inv.status)}`}
                         >
-                          {inv.status}
+                          {inv.status.toLowerCase()}
                         </Badge>
                       </td>
                       <td className="py-4 pr-4">
                         <span className="text-sm text-muted-foreground">
-                          {inv.description}
+                          {inv.description || inv.invoiceNumber}
                         </span>
                       </td>
                       <td className="py-4 text-right">
+                        <span className="text-xs text-muted-foreground mr-2">
+                          {inv.invoiceNumber}
+                        </span>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -378,4 +423,10 @@ export default function BillingPage() {
       </motion.div>
     </div>
   );
+}
+
+function formatNumberCompact(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
+  return String(value);
 }

@@ -3,17 +3,17 @@ import { toast } from "sonner";
 import { apiKeyService } from "@/services/apiKey.service";
 import type { CreateApiKeyDto } from "@/types/apiKey.types";
 import { QUERY_KEYS } from "@/constants/api.constants";
+import { useActiveWorkspaceId } from "@/hooks/queries/useWorkspaceQueries";
 
-export function useCreateApiKeyMutation(workspaceId: string = "ws_default") {
+export function useCreateApiKeyMutation() {
   const queryClient = useQueryClient();
+  const workspaceId = useActiveWorkspaceId();
 
   return useMutation({
-    mutationFn: (dto: CreateApiKeyDto) => apiKeyService.createApiKey(dto, workspaceId),
-    onSuccess: (key) => {
-      toast.success("API key created!", {
-        description: `Key name: ${key.name}`,
-      });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.API_KEYS.ALL });
+    mutationFn: (dto: CreateApiKeyDto) => apiKeyService.createApiKey(workspaceId, dto),
+    onSuccess: () => {
+      toast.success("API key created!");
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.API_KEYS.LIST(workspaceId) });
     },
     onError: (error: Error) => {
       toast.error("Failed to create API key", { description: error.message });
@@ -21,14 +21,15 @@ export function useCreateApiKeyMutation(workspaceId: string = "ws_default") {
   });
 }
 
-export function useDeleteApiKeyMutation(workspaceId: string = "ws_default") {
+export function useRevokeApiKeyMutation() {
   const queryClient = useQueryClient();
+  const workspaceId = useActiveWorkspaceId();
 
   return useMutation({
-    mutationFn: (keyId: string) => apiKeyService.deleteApiKey(keyId, workspaceId),
+    mutationFn: (keyId: string) => apiKeyService.revokeApiKey(workspaceId, keyId),
     onSuccess: () => {
       toast.success("API Key revoked");
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.API_KEYS.ALL });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.API_KEYS.LIST(workspaceId) });
     },
     onError: (error: Error) => {
       toast.error("Failed to revoke key", { description: error.message });

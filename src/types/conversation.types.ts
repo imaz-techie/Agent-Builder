@@ -1,25 +1,42 @@
-export type ConversationStatus = "resolved" | "active" | "pending";
+export type ChatRole = "USER" | "ASSISTANT" | "SYSTEM";
 
-export interface Conversation {
+export interface ConversationSession {
   id: string;
-  agentName: string;
-  userName: string;
-  messagePreview: string;
-  timestamp: string;
-  rating: number | null;
-  status: ConversationStatus;
+  agentId: string;
+  title: string;
+  metadata: Record<string, unknown> | null;
+  workspaceId: string;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ChatMessage {
   id: string;
-  conversationId: string;
-  sender: "user" | "agent";
-  text: string;
-  timestamp: string;
+  sessionId: string;
+  role: ChatRole;
+  content: string;
+  tokensCount: number;
+  latencyMs: number | null;
+  citations: unknown[] | null;
+  workspaceId: string;
+  createdById: string;
+  createdAt: string;
+}
+
+export interface CreateSessionDto {
+  agentId: string;
+  title?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SendMessageDto {
-  agentId: string;
-  message: string;
-  conversationId?: string;
+  sessionId: string;
+  content: string;
+  enableRag?: boolean;
+}
+
+export interface SendMessageResult {
+  userMessage: ChatMessage;
+  assistantMessage: ChatMessage;
 }

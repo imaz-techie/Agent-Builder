@@ -1,35 +1,40 @@
 import { useQuery } from "@tanstack/react-query";
 import { analyticsService } from "@/services/analytics.service";
 import { QUERY_KEYS } from "@/constants/api.constants";
+import { useActiveWorkspaceId } from "@/hooks/queries/useWorkspaceQueries";
 
-export function useDashboardStatsQuery() {
+export function useOverviewQuery() {
+  const workspaceId = useActiveWorkspaceId();
   return useQuery({
-    queryKey: QUERY_KEYS.ANALYTICS.DASHBOARD_STATS,
-    queryFn: () => analyticsService.getDashboardStats(),
+    queryKey: QUERY_KEYS.ANALYTICS.OVERVIEW(workspaceId),
+    queryFn: () => analyticsService.getOverview(workspaceId),
     staleTime: 60 * 1000,
   });
 }
 
-export function useMonthlyUsageQuery() {
+export function useUsageQuery() {
+  const workspaceId = useActiveWorkspaceId();
   return useQuery({
-    queryKey: QUERY_KEYS.ANALYTICS.MONTHLY_USAGE,
-    queryFn: () => analyticsService.getMonthlyUsage(),
+    queryKey: QUERY_KEYS.ANALYTICS.USAGE(workspaceId),
+    queryFn: () => analyticsService.getUsage(workspaceId),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useAgentDistributionQuery() {
+export function useAgentPerformanceQuery() {
+  const workspaceId = useActiveWorkspaceId();
   return useQuery({
-    queryKey: QUERY_KEYS.ANALYTICS.AGENT_DISTRIBUTION,
-    queryFn: () => analyticsService.getAgentDistribution(),
+    queryKey: QUERY_KEYS.ANALYTICS.AGENTS(workspaceId),
+    queryFn: () => analyticsService.getAgentPerformance(workspaceId),
     staleTime: 5 * 60 * 1000,
   });
 }
 
-export function useActivityTimelineQuery() {
+export function useAuditLogsQuery() {
+  const workspaceId = useActiveWorkspaceId();
   return useQuery({
-    queryKey: QUERY_KEYS.ANALYTICS.TIMELINE,
-    queryFn: () => analyticsService.getActivityTimeline(),
+    queryKey: QUERY_KEYS.ANALYTICS.AUDIT_LOGS(workspaceId),
+    queryFn: () => analyticsService.getAuditLogs(workspaceId),
     staleTime: 60 * 1000,
   });
 }

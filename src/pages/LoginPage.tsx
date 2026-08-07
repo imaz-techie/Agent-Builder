@@ -129,7 +129,6 @@ export default function LoginPage() {
                 key={provider.name}
                 variant="outline"
                 className="gap-2 h-11"
-              // onClick={() => setLoading(true)}
               >
                 <div
                   className={`h-5 w-5 rounded-full ${provider.color} flex items-center justify-center`}

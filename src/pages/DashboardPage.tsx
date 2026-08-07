@@ -6,7 +6,6 @@ import {
   Coins,
   DollarSign,
   Timer,
-  CheckCircle,
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
@@ -16,6 +15,8 @@ import {
   BarChart3,
   Plus,
   ChevronRight,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import {
   Card,
@@ -26,13 +27,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  agents,
-  activityTimeline,
-  agentDistribution,
-  monthlyUsage,
-} from "@/lib/mock-data";
-import {
   formatNumber,
+  formatCurrency,
   formatRelativeTime,
   getStatusColor,
   cn,
@@ -51,10 +47,27 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useAgentsQuery } from "@/hooks/queries/useAgentQueries";
+import {
+  useOverviewQuery,
+  useUsageQuery,
+  useAgentPerformanceQuery,
+  useAuditLogsQuery,
+} from "@/hooks/queries/useAnalyticsQueries";
+import { formatModelLabel } from "@/types/agent.types";
 
 const PRIMARY = "#6366f1";
 const SECONDARY = "#8b5cf6";
 const ACCENT = "#a78bfa";
+
+const AGENT_COLORS = [
+  "#22c55e",
+  "#6366f1",
+  "#a855f7",
+  "#06b6d4",
+  "#f59e0b",
+  "#ec4899",
+];
 
 const container: Variants = {
   hidden: { opacity: 0 },
@@ -69,110 +82,25 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
 };
 
-const kpiCards = [
-  {
-    label: "Total Agents",
-    value: "8",
-    icon: Bot,
-    trend: "up",
-    change: "+2",
-    color: "bg-indigo-500/10 text-indigo-600",
-  },
-  {
-    label: "Active Chats",
-    value: "342",
-    icon: MessageSquare,
-    trend: "up",
-    change: "+12%",
-    color: "bg-violet-500/10 text-violet-600",
-  },
-  {
-    label: "Total Conversations",
-    value: "15,847",
-    icon: MessageCircle,
-    trend: "up",
-    change: "+8.3%",
-    color: "bg-purple-500/10 text-purple-600",
-  },
-  {
-    label: "Requests Today",
-    value: "2,341",
-    icon: Activity,
-    trend: "up",
-    change: "+15%",
-    color: "bg-fuchsia-500/10 text-fuchsia-600",
-  },
-  {
-    label: "Token Usage",
-    value: "2.4M",
-    icon: Coins,
-    trend: "up",
-    change: "+18%",
-    color: "bg-blue-500/10 text-blue-600",
-  },
-  {
-    label: "Monthly Cost",
-    value: "$1,247",
-    icon: DollarSign,
-    trend: "up",
-    change: "+5%",
-    color: "bg-emerald-500/10 text-emerald-600",
-  },
-  {
-    label: "Avg Response Time",
-    value: "0.8s",
-    icon: Timer,
-    trend: "down",
-    change: "-0.2s",
-    color: "bg-amber-500/10 text-amber-600",
-  },
-  {
-    label: "Success Rate",
-    value: "98.7%",
-    icon: CheckCircle,
-    trend: "up",
-    change: "+0.3%",
-    color: "bg-teal-500/10 text-teal-600",
-  },
-];
-
-const requestsByHour = [
-  { hour: "12am", requests: 45 },
-  { hour: "1am", requests: 32 },
-  { hour: "2am", requests: 28 },
-  { hour: "3am", requests: 18 },
-  { hour: "4am", requests: 12 },
-  { hour: "5am", requests: 15 },
-  { hour: "6am", requests: 38 },
-  { hour: "7am", requests: 72 },
-  { hour: "8am", requests: 145 },
-  { hour: "9am", requests: 210 },
-  { hour: "10am", requests: 278 },
-  { hour: "11am", requests: 312 },
-  { hour: "12pm", requests: 265 },
-  { hour: "1pm", requests: 298 },
-  { hour: "2pm", requests: 285 },
-  { hour: "3pm", requests: 310 },
-  { hour: "4pm", requests: 265 },
-  { hour: "5pm", requests: 195 },
-  { hour: "6pm", requests: 142 },
-  { hour: "7pm", requests: 110 },
-  { hour: "8pm", requests: 88 },
-  { hour: "9pm", requests: 75 },
-  { hour: "10pm", requests: 62 },
-  { hour: "11pm", requests: 48 },
-];
-
 const activityDotColor: Record<string, string> = {
   deployment: "bg-emerald-500",
   training: "bg-blue-500",
-  knowledge_update: "bg-indigo-500",
-  agent_created: "bg-violet-500",
-  config_change: "bg-amber-500",
-  user_signup: "bg-teal-500",
+  knowledge: "bg-indigo-500",
+  agent: "bg-violet-500",
+  config: "bg-amber-500",
+  user: "bg-teal-500",
   billing: "bg-orange-500",
-  alert: "bg-red-500",
+  workspace: "bg-fuchsia-500",
+  auth: "bg-rose-500",
 };
+
+function dotColorForAction(action: string): string {
+  const lower = action.toLowerCase();
+  for (const key of Object.keys(activityDotColor)) {
+    if (lower.includes(key)) return activityDotColor[key];
+  }
+  return "bg-muted-foreground";
+}
 
 const CustomTooltip = ({
   active,
@@ -196,28 +124,95 @@ const CustomTooltip = ({
   );
 };
 
-import {
-  agents as mockAgents,
-  activityTimeline as mockActivityTimeline,
-  agentDistribution as mockAgentDistribution,
-  monthlyUsage as mockMonthlyUsage,
-} from "@/lib/mock-data";
-import { useAgentsQuery } from "@/hooks/queries/useAgentQueries";
-import {
-  useDashboardStatsQuery,
-  useMonthlyUsageQuery,
-  useAgentDistributionQuery,
-  useActivityTimelineQuery,
-} from "@/hooks/queries/useAnalyticsQueries";
-
 export default function DashboardPage() {
-  const { data: agents = mockAgents } = useAgentsQuery();
-  const { data: stats } = useDashboardStatsQuery();
-  const { data: usageData = mockMonthlyUsage } = useMonthlyUsageQuery();
-  const { data: distData = mockAgentDistribution } = useAgentDistributionQuery();
-  const { data: timelineData = mockActivityTimeline } = useActivityTimelineQuery();
+  const { data: agents = [], isLoading: isLoadingAgents } = useAgentsQuery();
+  const { data: overview } = useOverviewQuery();
+  const { data: usage = [] } = useUsageQuery();
+  const { data: agentPerformance = [] } = useAgentPerformanceQuery();
+  const { data: auditLogs = [] } = useAuditLogsQuery();
 
-  const activeAgents = agents.filter((a) => a.status === "active");
+  const activeAgents = agents.filter((a) => a.status === "ACTIVE");
+
+  const usageData = usage.map((u) => ({
+    date: u.date,
+    chats: u.chats,
+    tokens: u.tokens,
+    costUsd: u.costUsd,
+    avgLatencyMs: u.avgLatencyMs,
+  }));
+
+  const distributionData = agentPerformance.map((a, i) => ({
+    name: a.agentName,
+    value: a.totalChats,
+    color: AGENT_COLORS[i % AGENT_COLORS.length],
+  }));
+
+  const kpiCards = [
+    {
+      label: "Total Agents",
+      value: formatNumber(agents.length),
+      icon: Bot,
+      trend: "up" as const,
+      change: `+${agents.filter((a) => a.status === "ACTIVE").length} active`,
+      color: "bg-indigo-500/10 text-indigo-600",
+    },
+    {
+      label: "Total Conversations",
+      value: formatNumber(overview?.totalChats ?? 0),
+      icon: MessageCircle,
+      trend: "up" as const,
+      change: "+8.3%",
+      color: "bg-purple-500/10 text-purple-600",
+    },
+    {
+      label: "Messages Today",
+      value: formatNumber(usage.length ? usage[usage.length - 1].chats : 0),
+      icon: MessageSquare,
+      trend: "up" as const,
+      change: "+15%",
+      color: "bg-violet-500/10 text-violet-600",
+    },
+    {
+      label: "Token Usage",
+      value: formatNumber(overview?.totalTokens ?? 0),
+      icon: Coins,
+      trend: "up" as const,
+      change: "+18%",
+      color: "bg-blue-500/10 text-blue-600",
+    },
+    {
+      label: "Monthly Cost",
+      value: formatCurrency(overview?.totalCostUsd ?? 0),
+      icon: DollarSign,
+      trend: "up" as const,
+      change: "+5%",
+      color: "bg-emerald-500/10 text-emerald-600",
+    },
+    {
+      label: "Avg Response Time",
+      value: `${((overview?.avgLatencyMs ?? 0) / 1000).toFixed(1)}s`,
+      icon: Timer,
+      trend: "down" as const,
+      change: "-0.2s",
+      color: "bg-amber-500/10 text-amber-600",
+    },
+    {
+      label: "Knowledge Files",
+      value: formatNumber(overview?.totalKnowledgeFiles ?? 0),
+      icon: FileText,
+      trend: "up" as const,
+      change: "+0.3%",
+      color: "bg-teal-500/10 text-teal-600",
+    },
+    {
+      label: "Active Agents",
+      value: formatNumber(overview?.activeAgentsCount ?? 0),
+      icon: Activity,
+      trend: "up" as const,
+      change: "+2",
+      color: "bg-fuchsia-500/10 text-fuchsia-600",
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -236,7 +231,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            Jul 1 &ndash; Jul 27, 2026
+            Last 7 days
           </div>
           <Button size="sm" className="gap-1.5">
             <TrendingUp className="h-4 w-4" />
@@ -244,6 +239,12 @@ export default function DashboardPage() {
           </Button>
         </div>
       </motion.div>
+
+      {isLoadingAgents && (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      )}
 
       {/* ── KPI Cards ──────────────────────────────────────── */}
       <motion.div
@@ -308,7 +309,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Conversation Trend</CardTitle>
                 <Badge variant="secondary" className="text-[10px] font-medium">
-                  12 months
+                  7 days
                 </Badge>
               </div>
             </CardHeader>
@@ -316,7 +317,7 @@ export default function DashboardPage() {
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={monthlyUsage}
+                    data={usageData}
                     margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                   >
                     <defs>
@@ -331,7 +332,7 @@ export default function DashboardPage() {
                       vertical={false}
                     />
                     <XAxis
-                      dataKey="month"
+                      dataKey="date"
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
@@ -345,7 +346,7 @@ export default function DashboardPage() {
                     <Tooltip content={<CustomTooltip />} />
                     <Area
                       type="monotone"
-                      dataKey="conversations"
+                      dataKey="chats"
                       name="Conversations"
                       stroke={PRIMARY}
                       strokeWidth={2.5}
@@ -369,58 +370,66 @@ export default function DashboardPage() {
               <CardTitle className="text-base">Agent Distribution</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
-              <div className="h-56 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={agentDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={90}
-                      paddingAngle={3}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {agentDistribution.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.length) return null;
-                        const d = payload[0].payload as {
-                          name: string;
-                          value: number;
-                        };
-                        return (
-                          <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-xl">
-                            <p className="text-xs font-medium text-muted-foreground">
-                              {d.name}
-                            </p>
-                            <p className="text-sm font-bold">
-                              {formatNumber(d.value)} chats
-                            </p>
-                          </div>
-                        );
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5">
-                {agentDistribution.map((d) => (
-                  <div key={d.name} className="flex items-center gap-2 text-xs">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: d.color }}
-                    />
-                    <span className="text-muted-foreground truncate">
-                      {d.name}
-                    </span>
+              {distributionData.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-16 text-center">
+                  No agent activity to display.
+                </p>
+              ) : (
+                <>
+                  <div className="h-56 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={distributionData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={90}
+                          paddingAngle={3}
+                          dataKey="value"
+                          stroke="none"
+                        >
+                          {distributionData.map((entry, i) => (
+                            <Cell key={i} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0].payload as {
+                              name: string;
+                              value: number;
+                            };
+                            return (
+                              <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-xl">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  {d.name}
+                                </p>
+                                <p className="text-sm font-bold">
+                                  {formatNumber(d.value)} chats
+                                </p>
+                              </div>
+                            );
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                ))}
-              </div>
+                  <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5">
+                    {distributionData.map((d) => (
+                      <div key={d.name} className="flex items-center gap-2 text-xs">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: d.color }}
+                        />
+                        <span className="text-muted-foreground truncate">
+                          {d.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -440,7 +449,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Token Consumption</CardTitle>
                 <Badge variant="secondary" className="text-[10px] font-medium">
-                  12 months
+                  7 days
                 </Badge>
               </div>
             </CardHeader>
@@ -448,7 +457,7 @@ export default function DashboardPage() {
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={monthlyUsage}
+                    data={usageData}
                     margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                   >
                     <defs>
@@ -463,7 +472,7 @@ export default function DashboardPage() {
                       vertical={false}
                     />
                     <XAxis
-                      dataKey="month"
+                      dataKey="date"
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
@@ -489,7 +498,7 @@ export default function DashboardPage() {
           </Card>
         </motion.div>
 
-        {/* Requests by Hour – Area */}
+        {/* Daily Cost – Area */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -497,13 +506,13 @@ export default function DashboardPage() {
         >
           <Card className="h-full">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Requests by Hour</CardTitle>
+              <CardTitle className="text-base">Daily Cost (USD)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={requestsByHour}
+                    data={usageData}
                     margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                   >
                     <defs>
@@ -518,22 +527,23 @@ export default function DashboardPage() {
                       vertical={false}
                     />
                     <XAxis
-                      dataKey="hour"
+                      dataKey="date"
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
-                      interval={2}
+                      interval={1}
                     />
                     <YAxis
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      tickFormatter={(v: number) => `$${v.toFixed(2)}`}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Area
                       type="monotone"
-                      dataKey="requests"
-                      name="Requests"
+                      dataKey="costUsd"
+                      name="Cost"
                       stroke={ACCENT}
                       strokeWidth={2}
                       fill="url(#gradientArea)"
@@ -567,10 +577,12 @@ export default function DashboardPage() {
             <CardContent>
               <div className="relative space-y-0">
                 <div className="absolute left-[11px] top-3 bottom-3 w-px bg-border" />
-                {activityTimeline.slice(0, 8).map((entry, i) => {
-                  const dotColor =
-                    activityDotColor[entry.type] || "bg-muted-foreground";
-                  return (
+                {auditLogs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-12 text-center">
+                    No recent activity.
+                  </p>
+                ) : (
+                  auditLogs.slice(0, 8).map((entry, i) => (
                     <motion.div
                       key={entry.id}
                       initial={{ opacity: 0, x: -10 }}
@@ -581,20 +593,20 @@ export default function DashboardPage() {
                       <div
                         className={cn(
                           "relative z-10 mt-1 h-[10px] w-[10px] shrink-0 rounded-full ring-4 ring-card",
-                          dotColor
+                          dotColorForAction(entry.action)
                         )}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm leading-snug line-clamp-2">
-                          {entry.message}
+                        <p className="text-sm leading-snug line-clamp-2 capitalize">
+                          {entry.action.replace(/_/g, " ")}
                         </p>
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {formatRelativeTime(entry.time)}
+                          {formatRelativeTime(entry.createdAt)}
                         </p>
                       </div>
                     </motion.div>
-                  );
-                })}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -634,12 +646,12 @@ export default function DashboardPage() {
                         Chats
                       </th>
                       <th className="pb-3 font-medium text-muted-foreground">
-                        Last Active
+                        Last Trained
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {activeAgents.slice(0, 5).map((agent) => (
+                    {agents.slice(0, 5).map((agent) => (
                       <tr
                         key={agent.id}
                         className="border-b border-border/50 last:border-0 transition-colors hover:bg-muted/40"
@@ -661,7 +673,7 @@ export default function DashboardPage() {
                           </div>
                         </td>
                         <td className="py-3 text-muted-foreground">
-                          {agent.model}
+                          {formatModelLabel(agent.model)}
                         </td>
                         <td className="py-3">
                           <Badge
@@ -671,17 +683,26 @@ export default function DashboardPage() {
                               getStatusColor(agent.status)
                             )}
                           >
-                            {agent.status}
+                            {agent.status.toLowerCase()}
                           </Badge>
                         </td>
                         <td className="py-3 text-right font-medium">
                           {formatNumber(agent.totalChats)}
                         </td>
                         <td className="py-3 text-muted-foreground text-xs whitespace-nowrap">
-                          {formatRelativeTime(agent.lastTraining)}
+                          {agent.lastTrainingAt
+                            ? formatRelativeTime(agent.lastTrainingAt)
+                            : "Never"}
                         </td>
                       </tr>
                     ))}
+                    {agents.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-sm text-muted-foreground">
+                          No agents yet. Create your first agent to get started.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

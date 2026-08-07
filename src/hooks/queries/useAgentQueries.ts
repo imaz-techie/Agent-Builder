@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { agentService } from "@/services/agent.service";
 import { QUERY_KEYS } from "@/constants/api.constants";
 import type { AgentFilterQueryParams } from "@/types/agent.types";
+import { useActiveWorkspaceId } from "@/hooks/queries/useWorkspaceQueries";
 
-export function useAgentsQuery(workspaceId: string = "ws_default", params?: AgentFilterQueryParams) {
+export function useAgentsQuery(params?: AgentFilterQueryParams) {
+  const workspaceId = useActiveWorkspaceId();
   return useQuery({
     queryKey: [...QUERY_KEYS.AGENTS.LIST(workspaceId), params],
     queryFn: () => agentService.getAgents(workspaceId, params),
@@ -11,7 +13,8 @@ export function useAgentsQuery(workspaceId: string = "ws_default", params?: Agen
   });
 }
 
-export function useAgentQuery(agentId: string, workspaceId: string = "ws_default") {
+export function useAgentQuery(agentId: string) {
+  const workspaceId = useActiveWorkspaceId();
   return useQuery({
     queryKey: QUERY_KEYS.AGENTS.DETAIL(agentId),
     queryFn: () => agentService.getAgentById(agentId, workspaceId),

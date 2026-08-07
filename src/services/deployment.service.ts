@@ -2,38 +2,33 @@ import { apiClient } from "@/api/axios";
 import { API_ENDPOINTS } from "@/constants/api.constants";
 import type { ApiResponse } from "@/types/api.types";
 import type { Deployment, CreateDeploymentDto } from "@/types/deployment.types";
-import { deployments as mockDeployments } from "@/lib/mock-data";
 
 export const deploymentService = {
-  async getDeployments(): Promise<Deployment[]> {
-    try {
-      const response = await apiClient.get<ApiResponse<Deployment[]>>(
-        API_ENDPOINTS.DEPLOYMENTS.LIST
-      );
-      return response.data.data;
-    } catch {
-      return mockDeployments;
-    }
+  async getDeployments(workspaceId: string = "ws_default"): Promise<Deployment[]> {
+    const response = await apiClient.get<ApiResponse<{ deployments: Deployment[] }>>(
+      API_ENDPOINTS.DEPLOYMENTS.LIST(workspaceId)
+    );
+    return response.data.data.deployments;
   },
 
-  async createDeployment(dto: CreateDeploymentDto): Promise<Deployment> {
-    try {
-      const response = await apiClient.post<ApiResponse<Deployment>>(
-        API_ENDPOINTS.DEPLOYMENTS.CREATE,
-        dto
-      );
-      return response.data.data;
-    } catch {
-      const newDeployment: Deployment = {
-        id: `dep_${Date.now()}`,
-        agentName: dto.agentId,
-        environment: dto.environment,
-        version: dto.version,
-        status: "active",
-        deployedAt: new Date().toISOString(),
-      };
-      mockDeployments.unshift(newDeployment);
-      return newDeployment;
-    }
+  async createDeployment(workspaceId: string = "ws_default", dto: CreateDeploymentDto): Promise<Deployment> {
+    const response = await apiClient.post<ApiResponse<{ deployment: Deployment }>>(
+      API_ENDPOINTS.DEPLOYMENTS.CREATE(workspaceId),
+      dto
+    );
+    return response.data.data.deployment;
+  },
+
+  async rollbackDeployment(workspaceId: string = "ws_default", deploymentId: string): Promise<Deployment> {
+    const response = await apiClient.post<ApiResponse<{ deployment: Deployment }>>(
+      API_ENDPOINTS.DEPLOYMENTS.ROLLBACK(workspaceId, deploymentId)
+    );
+    return response.data.data.deployment;
+  },
+
+  async deleteDeployment(workspaceId: string = "ws_default", deploymentId: string): Promise<void> {
+    await apiClient.delete<ApiResponse<unknown>>(
+      API_ENDPOINTS.DEPLOYMENTS.DETAIL(workspaceId, deploymentId)
+    );
   },
 };

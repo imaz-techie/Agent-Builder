@@ -36,48 +36,62 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { knowledgeFiles, type KnowledgeFileType, type KnowledgeFileStatus } from "@/lib/mock-data";
+import { useKnowledgeFilesQuery } from "@/hooks/queries/useKnowledgeQueries";
+import {
+  useUploadKnowledgeFileMutation,
+  useDeleteKnowledgeFileMutation,
+} from "@/hooks/mutations/useKnowledgeMutations";
+import type { KnowledgeFileType, KnowledgeFileStatus } from "@/types/knowledge.types";
+import { formatFileSize } from "@/types/knowledge.types";
 import { formatRelativeTime, cn, formatNumber } from "@/lib/utils";
 
 const fileIcons: Record<string, React.ElementType> = {
-  pdf: FileText,
-  docx: File,
-  txt: FileCode,
-  csv: FileSpreadsheet,
-  md: FileCode,
-  json: FileJson,
+  PDF: FileText,
+  DOCX: File,
+  TXT: FileCode,
+  CSV: FileSpreadsheet,
+  MARKDOWN: FileCode,
+  JSON: FileJson,
+  URL: Globe,
 };
 
 const fileIconColors: Record<string, string> = {
-  pdf: "text-red-500 bg-red-500/10",
-  docx: "text-blue-500 bg-blue-500/10",
-  txt: "text-zinc-500 bg-zinc-500/10",
-  csv: "text-emerald-500 bg-emerald-500/10",
-  md: "text-purple-500 bg-purple-500/10",
-  json: "text-amber-500 bg-amber-500/10",
+  PDF: "text-red-500 bg-red-500/10",
+  DOCX: "text-blue-500 bg-blue-500/10",
+  TXT: "text-zinc-500 bg-zinc-500/10",
+  CSV: "text-emerald-500 bg-emerald-500/10",
+  MARKDOWN: "text-purple-500 bg-purple-500/10",
+  JSON: "text-amber-500 bg-amber-500/10",
+  URL: "text-sky-500 bg-sky-500/10",
 };
 
 const statusConfig: Record<
   KnowledgeFileStatus,
   { icon: React.ElementType; color: string; bg: string; label: string }
 > = {
-  indexed: {
+  INDEXED: {
     icon: CheckCircle2,
     color: "text-emerald-600 dark:text-emerald-400",
     bg: "bg-emerald-500/10 border-emerald-500/20",
     label: "Ready",
   },
-  processing: {
+  PROCESSING: {
     icon: Loader2,
     color: "text-amber-600 dark:text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
     label: "Processing",
   },
-  failed: {
+  FAILED: {
     icon: XCircle,
     color: "text-red-600 dark:text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
     label: "Error",
+  },
+  PENDING: {
+    icon: Loader2,
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+    label: "Pending",
   },
 };
 
@@ -92,13 +106,6 @@ const integrations = [
 
 type SortKey = "name" | "type" | "status" | "chunks" | "size" | "uploadedAt";
 
-import { knowledgeFiles as mockKnowledgeFiles } from "@/lib/mock-data";
-import { useKnowledgeFilesQuery } from "@/hooks/queries/useKnowledgeQueries";
-import {
-  useUploadKnowledgeFileMutation,
-  useDeleteKnowledgeFileMutation,
-} from "@/hooks/mutations/useKnowledgeMutations";
-
 export default function KnowledgeBasePage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -106,7 +113,7 @@ export default function KnowledgeBasePage() {
   const [sortAsc, setSortAsc] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
 
-  const { data: files = mockKnowledgeFiles } = useKnowledgeFilesQuery();
+  const { data: files = [], isLoading, isError } = useKnowledgeFilesQuery();
   const uploadMutation = useUploadKnowledgeFileMutation();
   const deleteMutation = useDeleteKnowledgeFileMutation();
 
@@ -144,9 +151,11 @@ export default function KnowledgeBasePage() {
       if (sortKey === "name") cmp = a.name.localeCompare(b.name);
       else if (sortKey === "type") cmp = a.type.localeCompare(b.type);
       else if (sortKey === "status") cmp = a.status.localeCompare(b.status);
-      else if (sortKey === "chunks") cmp = a.chunks - b.chunks;
-      else if (sortKey === "size") cmp = a.size.localeCompare(b.size);
-      else if (sortKey === "uploadedAt") cmp = new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime();
+      else if (sortKey === "chunks") cmp = a.chunksCount - b.chunksCount;
+      else if (sortKey === "size")
+        cmp = parseInt(a.sizeBytes, 10) - parseInt(b.sizeBytes, 10);
+      else if (sortKey === "uploadedAt")
+        cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       return sortAsc ? cmp : -cmp;
     });
 
@@ -155,23 +164,23 @@ export default function KnowledgeBasePage() {
     else { setSortKey(key); setSortAsc(false); }
   };
 
-  const totalChunks = knowledgeFiles.reduce((acc, f) => acc + f.chunks, 0);
+  const totalChunks = files.reduce((acc, f) => acc + f.chunksCount, 0);
   const totalEmbeddings = totalChunks * 126;
-  const totalSizeBytes = 2.3 * 1024 * 1024 * 1024;
+  const totalSizeBytes = files.reduce((acc, f) => acc + parseInt(f.sizeBytes, 10), 0);
 
   const stats = [
-    { label: "Total Files", value: knowledgeFiles.length, icon: Database, color: "text-blue-500 bg-blue-500/10" },
+    { label: "Total Files", value: files.length, icon: Database, color: "text-blue-500 bg-blue-500/10" },
     { label: "Total Chunks", value: formatNumber(totalChunks), icon: FileText, color: "text-purple-500 bg-purple-500/10" },
     { label: "Embeddings", value: formatNumber(totalEmbeddings), icon: HardDrive, color: "text-emerald-500 bg-emerald-500/10" },
-    { label: "Storage Used", value: "2.3 GB", icon: HardDrive, color: "text-amber-500 bg-amber-500/10" },
+    { label: "Storage Used", value: formatFileSize(totalSizeBytes), icon: HardDrive, color: "text-amber-500 bg-amber-500/10" },
   ];
 
   const filterTypes = [
     { label: "All", value: "all" },
-    { label: "PDF", value: "pdf" },
-    { label: "DOCX", value: "docx" },
-    { label: "TXT", value: "txt" },
-    { label: "CSV", value: "csv" },
+    { label: "PDF", value: "PDF" },
+    { label: "DOCX", value: "DOCX" },
+    { label: "TXT", value: "TXT" },
+    { label: "CSV", value: "CSV" },
   ];
 
   return (
@@ -392,18 +401,18 @@ export default function KnowledgeBasePage() {
                             <StatusIcon
                               className={cn(
                                 "h-3 w-3",
-                                file.status === "processing" && "animate-spin"
+                                file.status === "PROCESSING" && "animate-spin"
                               )}
                             />
                             {status.label}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-xs font-medium tabular-nums">
-                          {file.chunks > 0 ? formatNumber(file.chunks) : "—"}
+                          {file.chunksCount > 0 ? formatNumber(file.chunksCount) : "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{file.size}</td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{formatFileSize(file.sizeBytes)}</td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">
-                          {formatRelativeTime(file.uploadedAt)}
+                          {formatRelativeTime(file.createdAt)}
                         </td>
                         <td className="px-4 py-3">
                           <DropdownMenu>
@@ -420,7 +429,7 @@ export default function KnowledgeBasePage() {
                                 <Download className="h-3.5 w-3.5" /> Download
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive">
+                              <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={() => deleteMutation.mutate(file.id)}>
                                 <Trash2 className="h-3.5 w-3.5" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -433,7 +442,18 @@ export default function KnowledgeBasePage() {
               </tbody>
             </table>
           </div>
-          {filteredFiles.length === 0 && (
+          {isLoading && (
+            <div className="py-12 text-center">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mt-3">Loading files...</p>
+            </div>
+          )}
+          {isError && !isLoading && (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              Failed to load knowledge base files. Please check your connection and try again.
+            </div>
+          )}
+          {!isLoading && !isError && filteredFiles.length === 0 && (
             <div className="py-12 text-center text-sm text-muted-foreground">
               No files found matching your criteria.
             </div>

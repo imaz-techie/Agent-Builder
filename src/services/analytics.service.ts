@@ -2,60 +2,38 @@ import { apiClient } from "@/api/axios";
 import { API_ENDPOINTS } from "@/constants/api.constants";
 import type { ApiResponse } from "@/types/api.types";
 import type {
-  DashboardStats,
-  MonthlyUsage,
-  AgentDistribution,
-  ActivityTimelineItem,
+  AnalyticsOverview,
+  UsageTimeSeriesPoint,
+  AgentPerformance,
+  AuditLogEntry,
 } from "@/types/analytics.types";
-import {
-  dashboardStats as mockDashboardStats,
-  monthlyUsage as mockMonthlyUsage,
-  agentDistribution as mockAgentDistribution,
-  activityTimeline as mockActivityTimeline,
-} from "@/lib/mock-data";
 
 export const analyticsService = {
-  async getDashboardStats(): Promise<DashboardStats> {
-    try {
-      const response = await apiClient.get<ApiResponse<DashboardStats>>(
-        API_ENDPOINTS.ANALYTICS.OVERVIEW
-      );
-      return response.data.data;
-    } catch {
-      return mockDashboardStats;
-    }
+  async getOverview(workspaceId: string = "ws_default"): Promise<AnalyticsOverview> {
+    const response = await apiClient.get<ApiResponse<{ overview: AnalyticsOverview }>>(
+      API_ENDPOINTS.ANALYTICS.OVERVIEW(workspaceId)
+    );
+    return response.data.data.overview;
   },
 
-  async getMonthlyUsage(): Promise<MonthlyUsage[]> {
-    try {
-      const response = await apiClient.get<ApiResponse<MonthlyUsage[]>>(
-        API_ENDPOINTS.ANALYTICS.USAGE
-      );
-      return response.data.data;
-    } catch {
-      return mockMonthlyUsage;
-    }
+  async getUsage(workspaceId: string = "ws_default"): Promise<UsageTimeSeriesPoint[]> {
+    const response = await apiClient.get<ApiResponse<{ usage: UsageTimeSeriesPoint[] }>>(
+      API_ENDPOINTS.ANALYTICS.USAGE(workspaceId)
+    );
+    return response.data.data.usage;
   },
 
-  async getAgentDistribution(): Promise<AgentDistribution[]> {
-    try {
-      const response = await apiClient.get<ApiResponse<AgentDistribution[]>>(
-        API_ENDPOINTS.ANALYTICS.DISTRIBUTION
-      );
-      return response.data.data;
-    } catch {
-      return mockAgentDistribution;
-    }
+  async getAgentPerformance(workspaceId: string = "ws_default"): Promise<AgentPerformance[]> {
+    const response = await apiClient.get<ApiResponse<{ agents: AgentPerformance[] }>>(
+      API_ENDPOINTS.ANALYTICS.AGENTS(workspaceId)
+    );
+    return response.data.data.agents;
   },
 
-  async getActivityTimeline(): Promise<ActivityTimelineItem[]> {
-    try {
-      const response = await apiClient.get<ApiResponse<ActivityTimelineItem[]>>(
-        API_ENDPOINTS.ANALYTICS.TIMELINE
-      );
-      return response.data.data;
-    } catch {
-      return mockActivityTimeline;
-    }
+  async getAuditLogs(workspaceId: string = "ws_default"): Promise<AuditLogEntry[]> {
+    const response = await apiClient.get<ApiResponse<{ auditLogs: AuditLogEntry[] }>>(
+      API_ENDPOINTS.ANALYTICS.AUDIT_LOGS(workspaceId)
+    );
+    return response.data.data.auditLogs;
   },
 };

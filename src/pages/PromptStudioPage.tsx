@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -6,20 +6,20 @@ import {
   Variable,
   Save,
   Play,
-  RotateCcw,
-  Terminal,
+  Trash2,
   Hash,
   Clock,
   Cpu,
-  ChevronDown,
   Zap,
+  Loader2,
+  History,
+  Bot,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -28,90 +28,160 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/utils";
+import { MODEL_OPTIONS, formatModelLabel } from "@/types/agent.types";
+import type { LlmModel } from "@/types/agent.types";
+import type { PromptExecution, PromptTemplate } from "@/types/prompt.types";
+import {
+  usePromptTemplatesQuery,
+  usePromptExecutionsQuery,
+} from "@/hooks/queries/usePromptQueries";
+import {
+  useCreatePromptTemplateMutation,
+  useUpdatePromptTemplateMutation,
+  useDeletePromptTemplateMutation,
+  useExecutePromptMutation,
+} from "@/hooks/mutations/usePromptMutations";
+import { useAgentsQuery } from "@/hooks/queries/useAgentQueries";
 
-const versionHistory = [
-  {
-    version: "v3",
-    label: "Current",
-    time: "2 min ago",
-    changes: "Added company variable",
-  },
-  {
-    version: "v2",
-    label: null,
-    time: "1 hour ago",
-    changes: "Refined tone instructions",
-  },
-  {
-    version: "v1",
-    label: null,
-    time: "Yesterday",
-    changes: "Initial prompt draft",
-  },
-  { version: "v0", label: null, time: "2 days ago", changes: "Blank template" },
-];
+const NEW_TEMPLATE_VALUE = "__new__";
 
-const variables = [
-  "{{user_name}}",
-  "{{agent_name}}",
-  "{{date}}",
-  "{{context}}",
-  "{{company}}",
-];
-
-const defaultPrompt = `You are a helpful customer support agent for AgentMax AI. Your role is to assist users with their questions about our platform, troubleshoot issues, and guide them through features.
-
-## Core Guidelines
-
-1. Always greet the user by name: {{user_name}}
-2. Be professional, empathetic, and solution-oriented
-3. If you don't know the answer, acknowledge it honestly and escalate to a human agent
-4. Reference the company knowledge base when answering product questions
-
-## Response Format
-
-- Keep responses concise and actionable
-- Use bullet points for multi-step instructions
-- Include relevant documentation links when available
-
-## Context
-
-Today's date: {{date}}
-Company: {{company}}
-Conversation context: {{context}}
-
-Always ensure the customer feels heard and valued. Your goal is to resolve issues on the first contact whenever possible.`;
-
-const mockOutput = `Hello {{user_name}}! Welcome to AgentMax AI support. I'm {{agent_name}}, and I'm here to help you today.
-
-I can see you have a question about our platform. Let me look into that for you right away.
-
-Based on your account details, I can help you with:
-- Agent configuration and deployment
-- Knowledge base management
-- API integration setup
-- Billing and subscription inquiries
-
-Could you tell me more about what specific issue you're experiencing? The more details you can provide, the better I can assist you.
-
-In the meantime, you might find our quick-start guide helpful: https://docs.agentmax.ai/getting-started`;
+function extractTemplateVariables(templateText: string): string[] {
+  if (!templateText) return [];
+  const matches = templateText.match(/\{\{([a-zA-Z0-9_]+)\}\}/g);
+  if (!matches) return [];
+  return Array.from(new Set(matches.map((m) => m.replace(/[{}]/g, "").trim())));
+}
 
 export default function PromptStudioPage() {
-  const [promptName, setPromptName] = useState(
-    "Customer Support System Prompt",
+  const { data: templates = [], isLoading: templatesLoading } = usePromptTemplatesQuery();
+  const { data: executions = [], isLoading: executionsLoading } = usePromptExecutionsQuery();
+  const { data: agents = [] } = useAgentsQuery();
+
+  const createTemplate = useCreatePromptTemplateMutation();
+  const updateTemplate = useUpdatePromptTemplateMutation();
+  const deleteTemplate = useDeletePromptTemplateMutation();
+  const executePrompt = useExecutePromptMutation();
+
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("General");
+  const [description, setDescription] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState(
+    "You are a helpful AI assistant."
   );
-  const [promptText, setPromptText] = useState(defaultPrompt);
-  const [template, setTemplate] = useState("system");
-  const [selectedVersion, setSelectedVersion] = useState("v3");
-  const [output, setOutput] = useState(mockOutput);
+  const [userPromptTemplate, setUserPromptTemplate] = useState("");
+  const [model, setModel] = useState<LlmModel>("GPT_4O");
+  const [temperature, setTemperature] = useState(0.7);
+  const [maxTokens, setMaxTokens] = useState(4096);
+  const [isPublic, setIsPublic] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>("");
+  const [output, setOutput] = useState("");
+  const [activeExecution, setActiveExecution] = useState<PromptExecution | null>(null);
 
-  const tokenCount = promptText.split(/\s+/).filter(Boolean).length;
-  const charCount = promptText.length;
-
-  const insertVariable = (variable: string) => {
-    setPromptText((prev) => prev + " " + variable);
+  const loadTemplate = (template: PromptTemplate | null) => {
+    if (template) {
+      setSelectedTemplateId(template.id);
+      setTitle(template.title);
+      setCategory(template.category);
+      setDescription(template.description ?? "");
+      setSystemPrompt(template.systemPrompt);
+      setUserPromptTemplate(template.userPromptTemplate);
+      setModel(template.model);
+      setTemperature(template.temperature);
+      setMaxTokens(template.maxTokens);
+      setIsPublic(template.isPublic);
+    } else {
+      setSelectedTemplateId(null);
+      setTitle("");
+      setCategory("General");
+      setDescription("");
+      setSystemPrompt("You are a helpful AI assistant.");
+      setUserPromptTemplate("");
+      setModel("GPT_4O");
+      setTemperature(0.7);
+      setMaxTokens(4096);
+      setIsPublic(false);
+    }
+    setOutput("");
+    setActiveExecution(null);
   };
+
+  const variables = useMemo(() => extractTemplateVariables(userPromptTemplate), [userPromptTemplate]);
+
+  const tokenCount = userPromptTemplate.split(/\s+/).filter(Boolean).length;
+  const charCount = userPromptTemplate.length;
+
+  const insertVariable = (name: string) => {
+    setUserPromptTemplate((prev) => `${prev} {{${name}}}`);
+  };
+
+  const handleRun = () => {
+    if (!userPromptTemplate.trim()) return;
+    executePrompt.mutate(
+      {
+        templateId: selectedTemplateId ?? undefined,
+        agentId: selectedAgentId || undefined,
+        systemPrompt,
+        userPrompt: userPromptTemplate,
+        model,
+        temperature,
+        maxTokens,
+      },
+      {
+        onSuccess: (execution) => {
+          setOutput(execution.outputContent);
+          setActiveExecution(execution);
+        },
+      }
+    );
+  };
+
+  const handleSave = () => {
+    if (title.trim().length < 2) return;
+    const dto = {
+      title,
+      description: description || undefined,
+      category,
+      systemPrompt,
+      userPromptTemplate,
+      model,
+      temperature,
+      maxTokens,
+      isPublic,
+    };
+    if (selectedTemplateId) {
+      updateTemplate.mutate({ templateId: selectedTemplateId, dto });
+    } else {
+      createTemplate.mutate(dto, {
+        onSuccess: (template) => {
+          loadTemplate(template);
+        },
+      });
+    }
+  };
+
+  const handleDelete = () => {
+    if (!selectedTemplateId) return;
+    if (!window.confirm(`Delete template "${title}"? This cannot be undone.`)) return;
+    deleteTemplate.mutate(selectedTemplateId, {
+      onSuccess: () => loadTemplate(null),
+    });
+  };
+
+  const handleCopy = () => {
+    if (output) navigator.clipboard.writeText(output);
+  };
+
+  const viewExecution = (execution: PromptExecution) => {
+    setOutput(execution.outputContent);
+    setActiveExecution(execution);
+  };
+
+  const isRunning = executePrompt.isPending;
+  const isSaving = createTemplate.isPending || updateTemplate.isPending;
 
   return (
     <div className="space-y-6">
@@ -122,7 +192,7 @@ export default function PromptStudioPage() {
             Design, test, and version your agent prompts
           </p>
         </div>
-        <Button className="gap-2 shadow-sm">
+        <Button className="gap-2 shadow-sm" onClick={() => loadTemplate(null)}>
           <Plus className="h-4 w-4" />
           New Prompt
         </Button>
@@ -132,47 +202,196 @@ export default function PromptStudioPage() {
         <div className="lg:col-span-3 space-y-4">
           <Card className="h-full flex flex-col">
             <CardHeader className="pb-3 border-b border-border">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2 flex-1 mr-4">
-                  <Label
-                    htmlFor="prompt-name"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Prompt Name
-                  </Label>
-                  <Input
-                    id="prompt-name"
-                    value={promptName}
-                    onChange={(e) => setPromptName(e.target.value)}
-                    className="h-9 text-sm font-medium"
-                  />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-2 flex-1">
+                    <Label className="text-xs text-muted-foreground">
+                      Template
+                    </Label>
+                    <Select
+                      value={selectedTemplateId ?? NEW_TEMPLATE_VALUE}
+                      onValueChange={(value) => {
+                        if (value === NEW_TEMPLATE_VALUE) {
+                          loadTemplate(null);
+                        } else {
+                          const template = templates.find((t) => t.id === value);
+                          if (template) loadTemplate(template);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-full h-9">
+                        <SelectValue placeholder="Select a template..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NEW_TEMPLATE_VALUE}>
+                          New Template
+                        </SelectItem>
+                        {templates.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {templatesLoading && (
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Loading templates...
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2 w-48">
+                    <Label
+                      htmlFor="prompt-name"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Prompt Name
+                    </Label>
+                    <Input
+                      id="prompt-name"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="h-9 text-sm font-medium"
+                      placeholder="e.g. Customer Support Prompt"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Category
+                    </Label>
+                    <Input
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="h-9 text-sm"
+                      placeholder="General"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Model
+                    </Label>
+                    <Select
+                      value={model}
+                      onValueChange={(value) => setModel(value as LlmModel)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MODEL_OPTIONS.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>
+                            {m.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">
-                    Template
+                    Description
                   </Label>
-                  <Select value={template} onValueChange={setTemplate}>
-                    <SelectTrigger className="w-48 h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="system">System Prompt</SelectItem>
-                      <SelectItem value="support">Customer Support</SelectItem>
-                      <SelectItem value="sales">Sales Assistant</SelectItem>
-                      <SelectItem value="technical">Technical Guide</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="h-9 text-sm"
+                    placeholder="What is this prompt for?"
+                  />
                 </div>
               </div>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col p-4 gap-4">
-              <div className="flex-1">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">
+                    System Prompt
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground/70">
+                    Optional - defaults to a generic assistant
+                  </span>
+                </div>
                 <Textarea
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                  className="font-mono text-xs leading-relaxed min-h-[400px] resize-none"
-                  placeholder="Write your prompt here..."
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  className="font-mono text-xs leading-relaxed min-h-[90px] resize-none"
+                  placeholder="Define the assistant's role and behavior..."
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">
+                  User Prompt Template
+                </Label>
+                <Textarea
+                  value={userPromptTemplate}
+                  onChange={(e) => setUserPromptTemplate(e.target.value)}
+                  className="font-mono text-xs leading-relaxed min-h-[220px] resize-none"
+                  placeholder="Write your prompt template here. Use {{variable_name}} to insert variables..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Temperature ({temperature.toFixed(1)})
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    value={temperature}
+                    onChange={(e) => setTemperature(parseFloat(e.target.value) || 0)}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Max Tokens
+                  </Label>
+                  <Input
+                    type="number"
+                    min={128}
+                    max={128000}
+                    step={128}
+                    value={maxTokens}
+                    onChange={(e) => setMaxTokens(parseInt(e.target.value, 10) || 0)}
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="is-public"
+                    checked={isPublic}
+                    onCheckedChange={setIsPublic}
+                  />
+                  <Label htmlFor="is-public" className="text-xs text-muted-foreground cursor-pointer">
+                    Make template public
+                  </Label>
+                </div>
+                <div className="space-y-2 w-52">
+                  <Label className="text-xs text-muted-foreground">
+                    Test with Agent (optional)
+                  </Label>
+                  <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="No agent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No agent</SelectItem>
+                      {agents.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2.5">
@@ -180,33 +399,67 @@ export default function PromptStudioPage() {
                   Insert Variable
                 </Label>
                 <div className="flex flex-wrap gap-2">
-                  {variables.map((v) => (
-                    <Button
-                      key={v}
-                      variant="outline"
-                      size="sm"
-                      className="h-7 font-mono text-[11px] gap-1.5 hover:bg-primary/5"
-                      onClick={() => insertVariable(v)}
-                    >
-                      <Variable className="h-3 w-3" />
-                      {v}
-                    </Button>
-                  ))}
+                  {variables.length === 0 ? (
+                    <span className="text-[11px] text-muted-foreground/70">
+                      Use {"{{variable_name}}"} syntax in the template to add variables.
+                    </span>
+                  ) : (
+                    variables.map((v) => (
+                      <Button
+                        key={v}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 font-mono text-[11px] gap-1.5 hover:bg-primary/5"
+                        onClick={() => insertVariable(v)}
+                      >
+                        <Variable className="h-3 w-3" />
+                        {"{{" + v + "}}"}
+                      </Button>
+                    ))
+                  )}
                 </div>
               </div>
 
               <Separator />
 
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Button className="gap-2 shadow-sm">
-                    <Play className="h-4 w-4" />
-                    Run Prompt
+                <div className="flex items-center gap-2">
+                  <Button
+                    className="gap-2 shadow-sm"
+                    onClick={handleRun}
+                    disabled={isRunning || !userPromptTemplate.trim()}
+                  >
+                    {isRunning ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                    {isRunning ? "Running..." : "Run Prompt"}
                   </Button>
-                  <Button variant="outline" className="gap-2">
-                    <Save className="h-4 w-4" />
-                    Save
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={handleSave}
+                    disabled={isSaving || title.trim().length < 2}
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    {selectedTemplateId ? "Update" : "Save"}
                   </Button>
+                  {selectedTemplateId && (
+                    <Button
+                      variant="outline"
+                      className="gap-2 text-destructive hover:text-destructive"
+                      onClick={handleDelete}
+                      disabled={deleteTemplate.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5 tabular-nums">
@@ -235,6 +488,8 @@ export default function PromptStudioPage() {
                   variant="outline"
                   size="sm"
                   className="gap-1.5 h-7 text-xs"
+                  onClick={handleCopy}
+                  disabled={!output}
                 >
                   <Copy className="h-3.5 w-3.5" /> Copy
                 </Button>
@@ -252,96 +507,96 @@ export default function PromptStudioPage() {
                     output
                   </span>
                 </div>
-                <div className="p-4 overflow-y-auto max-h-[320px]">
-                  <pre className="text-[11px] font-mono text-zinc-300 dark:text-zinc-400 whitespace-pre-wrap leading-relaxed">
-                    {output}
-                  </pre>
+                <div className="p-4 overflow-y-auto max-h-[280px]">
+                  {output ? (
+                    <pre className="text-[11px] font-mono text-zinc-300 dark:text-zinc-400 whitespace-pre-wrap leading-relaxed">
+                      {output}
+                    </pre>
+                  ) : (
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-500 font-mono">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Waiting for prompt execution...
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
                 <span className="flex items-center gap-1">
-                  <Hash className="h-3 w-3" /> Tokens: 342
+                  <Hash className="h-3 w-3" /> Tokens: {activeExecution?.tokensUsed ?? "-"}
                 </span>
                 <span className="text-border">|</span>
                 <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> Time: 1.2s
+                  <Clock className="h-3 w-3" /> Time:{" "}
+                  {activeExecution ? `${activeExecution.latencyMs}ms` : "-"}
                 </span>
                 <span className="text-border">|</span>
                 <span className="flex items-center gap-1">
-                  <Cpu className="h-3 w-3" /> Model: GPT-4o
+                  <Cpu className="h-3 w-3" /> Model:{" "}
+                  {activeExecution ? formatModelLabel(activeExecution.model) : formatModelLabel(model)}
                 </span>
               </div>
 
               <Separator />
 
-              <div className="space-y-3">
+              <div className="space-y-3 flex-1">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">Version History</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-muted-foreground"
-                  >
-                    <RotateCcw className="h-3 w-3 mr-1" /> View All
-                  </Button>
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                    <History className="h-3.5 w-3.5 text-muted-foreground" />
+                    Execution History
+                  </h3>
                 </div>
 
-                <div className="space-y-1.5">
-                  {versionHistory.map((v, i) => (
-                    <motion.button
-                      key={v.version}
-                      initial={{ opacity: 0, x: 8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.05 }}
-                      onClick={() => setSelectedVersion(v.version)}
-                      className={cn(
-                        "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-all text-xs",
-                        selectedVersion === v.version
-                          ? "bg-primary/10 border border-primary/20"
-                          : "hover:bg-muted border border-transparent",
-                      )}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className={cn(
-                            "font-mono font-semibold text-[11px]",
-                            selectedVersion === v.version
-                              ? "text-primary"
-                              : "text-foreground",
-                          )}
-                        >
-                          {v.version}
-                        </span>
-                        {v.label && (
-                          <Badge
-                            variant="outline"
-                            className="text-[9px] px-1.5 py-0 h-4 border-primary/30 text-primary"
-                          >
-                            {v.label}
-                          </Badge>
+                <div className="space-y-1.5 max-h-[240px] overflow-y-auto pr-1">
+                  {executionsLoading ? (
+                    <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                      Loading executions...
+                    </div>
+                  ) : executions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground/70 py-4 text-center">
+                      No executions yet. Run a prompt to see results here.
+                    </p>
+                  ) : (
+                    executions.map((execution, i) => (
+                      <motion.button
+                        key={execution.id}
+                        initial={{ opacity: 0, x: 8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: Math.min(i, 10) * 0.03 }}
+                        onClick={() => viewExecution(execution)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-all text-xs",
+                          activeExecution?.id === execution.id
+                            ? "bg-primary/10 border border-primary/20"
+                            : "hover:bg-muted border border-transparent",
                         )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-muted-foreground">
-                          {v.time}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground/70">
-                          {v.changes}
-                        </p>
-                      </div>
-                    </motion.button>
-                  ))}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Bot
+                            className={cn(
+                              "h-3.5 w-3.5 shrink-0",
+                              activeExecution?.id === execution.id
+                                ? "text-primary"
+                                : "text-muted-foreground",
+                            )}
+                          />
+                          <span className="truncate max-w-[110px]">
+                            {execution.userPrompt}
+                          </span>
+                        </div>
+                        <div className="text-right shrink-0 ml-2">
+                          <p className="text-[10px] text-muted-foreground">
+                            {formatModelLabel(execution.model)}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground/70">
+                            {formatRelativeTime(execution.createdAt)}
+                          </p>
+                        </div>
+                      </motion.button>
+                    ))
+                  )}
                 </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-2 text-xs"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Restore Selected Version
-                </Button>
               </div>
             </CardContent>
           </Card>
