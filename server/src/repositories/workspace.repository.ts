@@ -62,6 +62,20 @@ export class WorkspaceRepository {
     });
   }
 
+  async updateBranding(id: string, branding: Record<string, unknown>) {
+    return prisma.workspace.update({
+      where: { id },
+      data: { branding: JSON.parse(JSON.stringify(branding)) },
+    });
+  }
+
+  async updateSecurity(id: string, data: { ipWhitelist: string[] }) {
+    return prisma.workspace.update({
+      where: { id },
+      data: { ipWhitelist: data.ipWhitelist },
+    });
+  }
+
   async deleteWorkspace(id: string) {
     return prisma.workspace.delete({
       where: { id },

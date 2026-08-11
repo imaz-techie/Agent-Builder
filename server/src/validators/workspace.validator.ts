@@ -15,6 +15,27 @@ export const updateWorkspaceSchema = z.object({
   }),
 });
 
+export const updateBrandingSchema = z.object({
+  body: z.object({
+    primaryColor: z
+      .string()
+      .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "Invalid hex color format")
+      .optional(),
+    accentColor: z
+      .string()
+      .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "Invalid hex color format")
+      .optional(),
+    faviconUrl: z.string().url("Invalid favicon URL format").optional().or(z.literal("")),
+    bannerText: z.string().max(120, "Banner text must be under 120 characters").optional(),
+  }),
+});
+
+export const updateSecuritySchema = z.object({
+  body: z.object({
+    ipWhitelist: z.array(z.string().min(3, "IP entry must be at least 3 characters")).max(50),
+  }),
+});
+
 export const inviteMemberSchema = z.object({
   body: z.object({
     email: z.string().email("Invalid email address format"),

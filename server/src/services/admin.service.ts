@@ -46,7 +46,17 @@ export class AdminService {
 
   async updateUser(userId: string, dto: UpdateAdminUserDTO) {
     const updated = await adminRepository.updateUser(userId, dto);
-    return updated;
+    return {
+      id: updated.id,
+      email: updated.email,
+      name: updated.name,
+      avatarUrl: updated.avatarUrl,
+      role: updated.role,
+      isVerified: updated.isVerified,
+      twoFactorEnabled: updated.twoFactorEnabled,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
   }
 
   async deleteUser(userId: string) {

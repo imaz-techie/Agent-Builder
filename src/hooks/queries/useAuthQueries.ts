@@ -11,3 +11,13 @@ export function useProfileQuery() {
     staleTime: 5 * 60 * 1000,
   });
 }
+
+export function useSessionsQuery() {
+  const hasToken = Boolean(sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN));
+  return useQuery({
+    queryKey: QUERY_KEYS.AUTH.SESSIONS,
+    queryFn: () => authService.getSessions(),
+    enabled: hasToken,
+    staleTime: 30 * 1000,
+  });
+}

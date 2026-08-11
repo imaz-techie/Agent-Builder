@@ -17,6 +17,9 @@ import {
   HelpCircle,
   Search,
   Bell,
+  BellRing,
+  CheckCheck,
+  Trash2,
   Sun,
   Moon,
   LogOut,
@@ -29,8 +32,9 @@ import {
   Crown,
   PanelLeftClose,
   PanelLeft,
+  ShieldCheck,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -55,11 +59,41 @@ import {
   useWorkspacesQuery,
   useActiveWorkspaceId,
 } from "@/hooks/queries/useWorkspaceQueries";
+import {
+  useNotificationsQuery,
+  useUnreadCountQuery,
+} from "@/hooks/queries/useNotificationQueries";
+import {
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+  useDeleteNotificationMutation,
+} from "@/hooks/mutations/useNotificationMutations";
 import { setActiveWorkspaceId } from "@/lib/workspace-id";
 import { STORAGE_KEYS } from "@/constants/api.constants";
+import type { AppNotification } from "@/types/notification.types";
 
 const SIDEBAR_WIDTH = 260;
 const SIDEBAR_COLLAPSED_WIDTH = 68;
+
+function readStoredUser(): { name?: string; email?: string; role?: string } | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEYS.USER_DATA);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function useIsAdmin(): boolean {
+  const { data: userProfile } = useProfileQuery();
+  const stored = readStoredUser();
+  return userProfile?.role === "ADMIN" || stored?.role === "ADMIN";
+}
+
+const ADMIN_NAV_GROUP: NavGroup = {
+  label: "Platform",
+  items: [{ label: "Admin Console", path: "/admin", icon: ShieldCheck }],
+};
 
 interface NavItem {
   label: string;
@@ -232,6 +266,7 @@ function MobileSidebar({
   onClose: () => void;
 }) {
   const location = useLocation();
+  const isAdmin = useIsAdmin();
 
   useEffect(() => {
     onClose();
@@ -283,12 +318,139 @@ function MobileSidebar({
                     collapsed={false}
                   />
                 ))}
+                {isAdmin && (
+                  <SidebarNavGroup group={ADMIN_NAV_GROUP} collapsed={false} />
+                )}
               </div>
             </ScrollArea>
           </motion.aside>
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+function NotificationsDropdown() {
+  const { data, isLoading } = useNotificationsQuery({ limit: 20 });
+  const { data: unreadCount = 0 } = useUnreadCountQuery();
+  const markRead = useMarkNotificationReadMutation();
+  const markAllRead = useMarkAllNotificationsReadMutation();
+  const deleteNotification = useDeleteNotificationMutation();
+
+  const notifications = data?.notifications ?? [];
+
+  const handleOpen = (notification: AppNotification) => {
+    if (!notification.readAt) {
+      markRead.mutate(notification.id);
+    }
+    if (notification.link) {
+      window.open(notification.link, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-9 w-9 rounded-xl"
+        >
+          <Bell className="h-[18px] w-[18px]" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground ring-2 ring-background">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80 p-0">
+        <DropdownMenuLabel className="flex items-center justify-between px-4 py-2.5">
+          <span>Notifications</span>
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 gap-1 text-[11px] text-primary px-2"
+                onClick={() => markAllRead.mutate()}
+              >
+                <CheckCheck className="h-3.5 w-3.5" />
+                Mark all read
+              </Button>
+            )}
+            <Badge variant="secondary" className="text-[10px]">
+              {unreadCount} new
+            </Badge>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-8">
+            <BellRing className="h-5 w-5 animate-pulse text-muted-foreground/50" />
+            <span className="text-sm text-muted-foreground">Loading...</span>
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="flex flex-col items-center gap-1.5 py-6 px-3">
+            <Bell className="h-6 w-6 text-muted-foreground/40" />
+            <span className="text-sm font-medium text-muted-foreground">
+              No notifications yet
+            </span>
+            <span className="text-xs text-muted-foreground/70 text-center">
+              System alerts and agent activity will appear here.
+            </span>
+          </div>
+        ) : (
+          <ScrollArea className="max-h-96">
+            <div className="py-1">
+              {notifications.map((notification) => (
+                <DropdownMenuItem
+                  key={notification.id}
+                  className={cn(
+                    "flex items-start gap-3 px-4 py-3 cursor-pointer focus:bg-muted/60",
+                    !notification.readAt && "bg-primary/[0.04]",
+                  )}
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    handleOpen(notification);
+                  }}
+                >
+                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      {!notification.readAt && (
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      )}
+                      <span className="text-[13px] font-medium leading-tight truncate">
+                        {notification.title}
+                      </span>
+                    </div>
+                    {notification.body && (
+                      <span className="text-xs text-muted-foreground leading-snug line-clamp-2">
+                        {notification.body}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-muted-foreground/70">
+                      {formatRelativeTime(notification.createdAt)}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      deleteNotification.mutate(notification.id);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -411,35 +573,7 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-9 w-9 rounded-xl"
-            >
-              <Bell className="h-[18px] w-[18px]" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel className="flex items-center justify-between">
-              <span>Notifications</span>
-              <Badge variant="secondary" className="text-[10px]">
-                0 new
-              </Badge>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem disabled className="flex flex-col items-center gap-1.5 py-6 px-3">
-              <Bell className="h-6 w-6 text-muted-foreground/40" />
-              <span className="text-sm font-medium text-muted-foreground">
-                No notifications yet
-              </span>
-              <span className="text-xs text-muted-foreground/70">
-                System alerts and agent activity will appear here.
-              </span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationsDropdown />
 
         <Button
           variant="ghost"
@@ -523,6 +657,7 @@ export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const isAdmin = useIsAdmin();
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -585,6 +720,9 @@ export default function AppLayout() {
                   collapsed={collapsed}
                 />
               ))}
+              {isAdmin && (
+                <SidebarNavGroup group={ADMIN_NAV_GROUP} collapsed={collapsed} />
+              )}
             </div>
           </ScrollArea>
 

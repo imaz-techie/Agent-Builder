@@ -37,6 +37,40 @@ export class UserRepository {
     });
   }
 
+  async updateProfile(
+    id: string,
+    data: { name?: string; avatarUrl?: string | null }
+  ): Promise<User> {
+    return prisma.user.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+      },
+    });
+  }
+
+  async setTwoFactorSecret(id: string, secret: string): Promise<User> {
+    return prisma.user.update({
+      where: { id },
+      data: { twoFactorSecret: secret, twoFactorEnabled: false },
+    });
+  }
+
+  async enableTwoFactor(id: string): Promise<User> {
+    return prisma.user.update({
+      where: { id },
+      data: { twoFactorEnabled: true },
+    });
+  }
+
+  async disableTwoFactor(id: string): Promise<User> {
+    return prisma.user.update({
+      where: { id },
+      data: { twoFactorEnabled: false, twoFactorSecret: null },
+    });
+  }
+
   async updateRole(id: string, role: Role): Promise<User> {
     return prisma.user.update({
       where: { id },

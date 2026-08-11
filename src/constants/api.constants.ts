@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
 export const QUERY_KEYS = {
   AUTH: {
     PROFILE: ["auth", "profile"] as const,
+    SESSIONS: ["auth", "sessions"] as const,
   },
   WORKSPACES: {
     LIST: ["workspaces", "list"] as const,
@@ -65,6 +66,23 @@ export const QUERY_KEYS = {
   WIDGET: {
     CONFIG: (agentId: string) => ["widget", "config", agentId] as const,
   },
+  NOTIFICATIONS: {
+    ALL: ["notifications"] as const,
+    LIST: (filters?: Record<string, unknown>) =>
+      ["notifications", "list", filters ?? {}] as const,
+    UNREAD_COUNT: ["notifications", "unread-count"] as const,
+    PREFERENCES: ["notifications", "preferences"] as const,
+  },
+  ADMIN: {
+    STATS: ["admin", "stats"] as const,
+    TELEMETRY: ["admin", "telemetry"] as const,
+    USERS: (filters?: Record<string, unknown>) =>
+      ["admin", "users", filters ?? {}] as const,
+    WORKSPACES: (filters?: Record<string, unknown>) =>
+      ["admin", "workspaces", filters ?? {}] as const,
+    LOGS: (filters?: Record<string, unknown>) =>
+      ["admin", "logs", filters ?? {}] as const,
+  },
 } as const;
 
 export const API_ENDPOINTS = {
@@ -75,10 +93,18 @@ export const API_ENDPOINTS = {
     REFRESH: "/auth/refresh",
     ME: "/auth/me",
     FORGOT_PASSWORD: "/auth/forgot-password",
+    CHANGE_PASSWORD: "/auth/change-password",
+    SESSIONS: "/auth/sessions",
+    SESSION_DETAIL: (sessionId: string) => `/auth/sessions/${sessionId}`,
+    TFA_ENABLE: "/auth/2fa/enable",
+    TFA_CONFIRM: "/auth/2fa/confirm",
+    TFA_DISABLE: "/auth/2fa/disable",
   },
   WORKSPACES: {
     LIST: "/workspaces",
     DETAIL: (workspaceId: string) => `/workspaces/${workspaceId}`,
+    BRANDING: (workspaceId: string) => `/workspaces/${workspaceId}/branding`,
+    SECURITY: (workspaceId: string) => `/workspaces/${workspaceId}/security`,
     AGENTS: (workspaceId: string) => `/workspaces/${workspaceId}/agents`,
     AGENT_DETAIL: (workspaceId: string, agentId: string) => `/workspaces/${workspaceId}/agents/${agentId}`,
     KNOWLEDGE_FILES: (workspaceId: string) => `/workspaces/${workspaceId}/knowledge/files`,
@@ -132,5 +158,22 @@ export const API_ENDPOINTS = {
     CONFIG: (workspaceId: string, agentId: string) => `/workspaces/${workspaceId}/agents/${agentId}/widget`,
     PUBLISH: (workspaceId: string, widgetId: string) => `/workspaces/${workspaceId}/widgets/${widgetId}/publish`,
     TOKEN: (workspaceId: string, widgetId: string) => `/workspaces/${workspaceId}/widgets/${widgetId}/token`,
+  },
+  NOTIFICATIONS: {
+    LIST: "/notifications",
+    UNREAD_COUNT: "/notifications/unread-count",
+    READ_ALL: "/notifications/read-all",
+    READ: (notificationId: string) => `/notifications/${notificationId}/read`,
+    DETAIL: (notificationId: string) => `/notifications/${notificationId}`,
+    PREFERENCES: "/notifications/preferences",
+  },
+  ADMIN: {
+    STATS: "/admin/stats",
+    TELEMETRY: "/admin/telemetry",
+    USERS: "/admin/users",
+    USER_DETAIL: (userId: string) => `/admin/users/${userId}`,
+    USER_ROLE: (userId: string) => `/admin/users/${userId}/role`,
+    WORKSPACES: "/admin/workspaces",
+    LOGS: "/admin/logs",
   },
 } as const;

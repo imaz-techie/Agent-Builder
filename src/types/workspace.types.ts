@@ -21,9 +21,18 @@ export interface WorkspaceMember {
   joinedAt: string;
 }
 
+export interface WorkspaceBranding {
+  primaryColor?: string | null;
+  accentColor?: string | null;
+  faviconUrl?: string | null;
+  bannerText?: string | null;
+}
+
 export interface WorkspaceDetails extends Workspace {
   memberRole: WorkspaceRole;
   members: WorkspaceMember[];
+  branding: WorkspaceBranding | null;
+  ipWhitelist: string[];
 }
 
 export interface CreateWorkspaceDto {
@@ -34,4 +43,15 @@ export interface CreateWorkspaceDto {
 export interface UpdateWorkspaceDto {
   name?: string;
   logoUrl?: string;
+}
+
+export interface UpdateBrandingDto {
+  primaryColor?: string;
+  accentColor?: string;
+  faviconUrl?: string;
+  bannerText?: string;
+}
+
+export interface UpdateSecurityDto {
+  ipWhitelist: string[];
 }

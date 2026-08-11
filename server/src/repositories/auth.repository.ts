@@ -5,13 +5,17 @@ export class AuthRepository {
   async saveRefreshToken(
     userId: string,
     token: string,
-    expiresAt: Date
+    expiresAt: Date,
+    ipAddress?: string | null,
+    userAgent?: string | null
   ): Promise<RefreshToken> {
     return prisma.refreshToken.create({
       data: {
         userId,
         token,
         expiresAt,
+        ipAddress: ipAddress || null,
+        userAgent: userAgent || null,
       },
     });
   }
@@ -32,6 +36,44 @@ export class AuthRepository {
   async deleteAllRefreshTokensForUser(userId: string): Promise<void> {
     await prisma.refreshToken.deleteMany({
       where: { userId },
+    });
+  }
+
+  async listSessionsForUser(userId: string) {
+    return prisma.refreshToken.findMany({
+      where: {
+        userId,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        ipAddress: true,
+        userAgent: true,
+        expiresAt: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async findSessionById(id: string, userId: string) {
+    return prisma.refreshToken.findFirst({
+      where: { id, userId },
+      select: {
+        id: true,
+        ipAddress: true,
+        userAgent: true,
+        expiresAt: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async deleteSessionById(id: string, userId: string): Promise<void> {
+    await prisma.refreshToken.deleteMany({
+      where: { id, userId },
     });
   }
 

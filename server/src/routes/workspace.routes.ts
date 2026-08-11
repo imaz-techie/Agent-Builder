@@ -4,6 +4,8 @@ import {
   getUserWorkspaces,
   getWorkspaceDetails,
   updateWorkspace,
+  updateBranding,
+  updateSecurity,
   deleteWorkspace,
   inviteMember,
   updateMemberRole,
@@ -17,6 +19,8 @@ import { WorkspaceRole } from "@prisma/client";
 import {
   createWorkspaceSchema,
   updateWorkspaceSchema,
+  updateBrandingSchema,
+  updateSecuritySchema,
   inviteMemberSchema,
   updateMemberRoleSchema,
 } from "../validators/workspace.validator";
@@ -133,6 +137,81 @@ router.patch(
   requireWorkspaceMember(WorkspaceRole.ADMIN),
   validate(updateWorkspaceSchema),
   asyncHandler(updateWorkspace)
+);
+
+/**
+ * @openapi
+ * /workspaces/{id}/branding:
+ *   put:
+ *     summary: Update Workspace Branding
+ *     description: Updates branding configuration (colors, favicon, banner) for a workspace.
+ *     tags:
+ *       - Workspaces
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               primaryColor: { type: "string", example: "#3B82F6" }
+ *               accentColor: { type: "string", example: "#8B5CF6" }
+ *               faviconUrl: { type: "string", example: "https://example.com/favicon.png" }
+ *               bannerText: { type: "string", example: "Powered by Acme AI" }
+ *     responses:
+ *       200:
+ *         description: Workspace branding updated
+ */
+router.put(
+  "/workspaces/:id/branding",
+  requireWorkspaceMember(WorkspaceRole.ADMIN),
+  validate(updateBrandingSchema),
+  asyncHandler(updateBranding)
+);
+
+/**
+ * @openapi
+ * /workspaces/{id}/security:
+ *   patch:
+ *     summary: Update Workspace Security
+ *     description: Updates security settings such as the IP whitelist for a workspace.
+ *     tags:
+ *       - Workspaces
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ipWhitelist
+ *             properties:
+ *               ipWhitelist:
+ *                 type: array
+ *                 items: { type: "string", example: "192.168.1.0/24" }
+ *     responses:
+ *       200:
+ *         description: Workspace security settings updated
+ */
+router.patch(
+  "/workspaces/:id/security",
+  requireWorkspaceMember(WorkspaceRole.ADMIN),
+  validate(updateSecuritySchema),
+  asyncHandler(updateSecurity)
 );
 
 router.delete(

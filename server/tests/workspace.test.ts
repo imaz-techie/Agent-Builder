@@ -136,4 +136,66 @@ describe("Phase 3 Workspace & API Key Endpoints", () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
   });
+
+  it("PUT /api/v1/workspaces/:id/branding should update workspace branding", async () => {
+    (workspaceRepository.findMember as jest.Mock).mockResolvedValue({
+      id: "mem-1",
+      workspaceId,
+      userId,
+      role: WorkspaceRole.OWNER,
+    });
+    (workspaceRepository.updateBranding as jest.Mock).mockResolvedValue({
+      ...mockWorkspace,
+      branding: { primaryColor: "#3B82F6", accentColor: "#8B5CF6" },
+    });
+    (workspaceRepository.logAuditAction as jest.Mock).mockResolvedValue({});
+
+    const res = await request(app)
+      .put(`/api/v1/workspaces/${workspaceId}/branding`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ primaryColor: "#3B82F6", accentColor: "#8B5CF6" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.workspace.branding.primaryColor).toBe("#3B82F6");
+  });
+
+  it("PUT /api/v1/workspaces/:id/branding should reject invalid hex color", async () => {
+    (workspaceRepository.findMember as jest.Mock).mockResolvedValue({
+      id: "mem-1",
+      workspaceId,
+      userId,
+      role: WorkspaceRole.OWNER,
+    });
+
+    const res = await request(app)
+      .put(`/api/v1/workspaces/${workspaceId}/branding`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ primaryColor: "not-a-color" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("PATCH /api/v1/workspaces/:id/security should update IP whitelist", async () => {
+    (workspaceRepository.findMember as jest.Mock).mockResolvedValue({
+      id: "mem-1",
+      workspaceId,
+      userId,
+      role: WorkspaceRole.OWNER,
+    });
+    (workspaceRepository.updateSecurity as jest.Mock).mockResolvedValue({
+      ...mockWorkspace,
+      ipWhitelist: ["192.168.1.0/24"],
+    });
+    (workspaceRepository.logAuditAction as jest.Mock).mockResolvedValue({});
+
+    const res = await request(app)
+      .patch(`/api/v1/workspaces/${workspaceId}/security`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ ipWhitelist: ["192.168.1.0/24", "10.0.0.0/8"] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.workspace.ipWhitelist).toEqual(["192.168.1.0/24"]);
+  });
 });

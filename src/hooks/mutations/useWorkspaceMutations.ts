@@ -1,7 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { workspaceService } from "@/services/workspace.service";
-import type { CreateWorkspaceDto, UpdateWorkspaceDto } from "@/types/workspace.types";
+import type {
+  CreateWorkspaceDto,
+  UpdateWorkspaceDto,
+  UpdateBrandingDto,
+  UpdateSecurityDto,
+} from "@/types/workspace.types";
 import { QUERY_KEYS } from "@/constants/api.constants";
 import { setActiveWorkspaceId } from "@/lib/workspace-id";
 
@@ -33,6 +38,38 @@ export function useUpdateWorkspaceMutation(workspaceId: string) {
     },
     onError: (error: Error) => {
       toast.error("Failed to update workspace", { description: error.message });
+    },
+  });
+}
+
+export function useUpdateWorkspaceBrandingMutation(workspaceId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dto: UpdateBrandingDto) =>
+      workspaceService.updateBranding(workspaceId, dto),
+    onSuccess: () => {
+      toast.success("Branding updated");
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKSPACES.DETAIL(workspaceId) });
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to update branding", { description: error.message });
+    },
+  });
+}
+
+export function useUpdateWorkspaceSecurityMutation(workspaceId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dto: UpdateSecurityDto) =>
+      workspaceService.updateSecurity(workspaceId, dto),
+    onSuccess: () => {
+      toast.success("Security settings updated");
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WORKSPACES.DETAIL(workspaceId) });
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to update security settings", { description: error.message });
     },
   });
 }

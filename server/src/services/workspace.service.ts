@@ -5,6 +5,8 @@ import { ApiError } from "../utils/apiError";
 import {
   CreateWorkspaceDTO,
   UpdateWorkspaceDTO,
+  UpdateBrandingDTO,
+  UpdateSecurityDTO,
   InviteMemberDTO,
   UpdateMemberRoleDTO,
 } from "../interfaces/workspace.interface";
@@ -52,6 +54,8 @@ export class WorkspaceService {
       name: workspace.name,
       slug: workspace.slug,
       logoUrl: workspace.logoUrl,
+      branding: workspace.branding,
+      ipWhitelist: workspace.ipWhitelist,
       createdAt: workspace.createdAt,
       updatedAt: workspace.updatedAt,
       memberRole: member.role,
@@ -71,6 +75,26 @@ export class WorkspaceService {
   async updateWorkspace(workspaceId: string, userId: string, dto: UpdateWorkspaceDTO) {
     const updated = await workspaceRepository.updateWorkspace(workspaceId, dto);
     await workspaceRepository.logAuditAction(userId, workspaceId, "WORKSPACE_UPDATED", dto as Record<string, unknown>);
+    return updated;
+  }
+
+  async updateBranding(workspaceId: string, userId: string, dto: UpdateBrandingDTO) {
+    const branding = {
+      primaryColor: dto.primaryColor,
+      accentColor: dto.accentColor,
+      faviconUrl: dto.faviconUrl,
+      bannerText: dto.bannerText,
+    };
+    const updated = await workspaceRepository.updateBranding(workspaceId, branding);
+    await workspaceRepository.logAuditAction(userId, workspaceId, "WORKSPACE_BRANDING_UPDATED", branding);
+    return updated;
+  }
+
+  async updateSecurity(workspaceId: string, userId: string, dto: UpdateSecurityDTO) {
+    const updated = await workspaceRepository.updateSecurity(workspaceId, dto);
+    await workspaceRepository.logAuditAction(userId, workspaceId, "WORKSPACE_SECURITY_UPDATED", {
+      ipWhitelist: dto.ipWhitelist,
+    });
     return updated;
   }
 

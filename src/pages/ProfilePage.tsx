@@ -1,17 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
-  Camera,
   Save,
   Loader2,
-  Shield,
   Key,
   Mail,
-  Bell,
   Laptop,
   Smartphone,
-  Globe,
   Check,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Card,
@@ -23,83 +21,106 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { TwoFactorCard } from "@/components/profile/TwoFactorCard";
 
-import { useProfileQuery } from "@/hooks/queries/useAuthQueries";
+import { useProfileQuery, useSessionsQuery } from "@/hooks/queries/useAuthQueries";
+import {
+  useUpdateProfileMutation,
+  useChangePasswordMutation,
+  useRevokeSessionMutation,
+} from "@/hooks/mutations/useAuthMutations";
+import { STORAGE_KEYS } from "@/constants/api.constants";
+
+function parseDeviceLabel(userAgent: string): string {
+  if (/iPhone/.test(userAgent)) return "iPhone";
+  if (/Android/.test(userAgent)) return "Android Device";
+  if (/Mac|iPad/.test(userAgent)) return "Mac";
+  if (/Windows/.test(userAgent)) return "Windows PC";
+  if (/Linux/.test(userAgent)) return "Linux";
+  return "Unknown device";
+}
+
+function formatSessionDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+}
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const { data: userProfile } = useProfileQuery();
-  const [saving, setSaving] = useState(false);
-  const [twoFAEnabled, setTwoFAEnabled] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState({
-    marketing: true,
-    product: true,
-    security: true,
-    weekly: false,
-    monthly: true,
-  });
 
-  const handleSave = () => {
-    setSaving(true);
-    setTimeout(() => setSaving(false), 1500);
+  const [name, setName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  useEffect(() => {
+    if (userProfile) {
+      setName(userProfile.name);
+      setAvatarUrl(userProfile.avatarUrl || "");
+    }
+  }, [userProfile]);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
+  const updateProfile = useUpdateProfileMutation();
+  const changePassword = useChangePasswordMutation();
+  const revokeSession = useRevokeSessionMutation();
+  const { data: sessions } = useSessionsQuery();
+
+  const handleChangePassword = () => {
+    setPasswordError("");
+    if (!currentPassword || !newPassword) {
+      setPasswordError("Please fill in all password fields.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
+    changePassword.mutate(
+      { currentPassword, newPassword },
+      {
+        onSuccess: () => {
+          sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+          sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+          sessionStorage.removeItem(STORAGE_KEYS.USER_DATA);
+          navigate("/login");
+        },
+      }
+    );
   };
 
-  const sessions = [
-    {
-      id: "1",
-      device: 'MacBook Pro 16"',
-      browser: "Chrome 120.0",
-      os: "macOS Sonoma",
-      ip: "192.168.1.42",
-      location: "San Francisco, CA, US",
-      lastActive: "Active now",
-      current: true,
-    },
-    {
-      id: "2",
-      device: "iPhone 15 Pro",
-      browser: "Safari 17.2",
-      os: "iOS 17.2",
-      ip: "192.168.1.100",
-      location: "San Francisco, CA, US",
-      lastActive: "3 hours ago",
-      current: false,
-    },
-    {
-      id: "3",
-      device: "Windows Desktop",
-      browser: "Firefox 121.0",
-      os: "Windows 11",
-      ip: "10.0.0.55",
-      location: "New York, NY, US",
-      lastActive: "2 days ago",
-      current: false,
-    },
-  ];
+  const initials = (name || "U")
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="max-w-4xl space-y-6">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
       >
-        <div>
-          <h1 className="text-2xl font-bold">Profile</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage your personal information and account security.
-          </p>
-        </div>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          Save Changes
-        </Button>
+        <h1 className="text-2xl font-bold">Profile</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage your personal information and account security.
+        </p>
       </motion.div>
 
       <motion.div
@@ -117,23 +138,36 @@ export default function ProfilePage() {
           <CardContent>
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24">
+                <AvatarImage src={userProfile?.avatarUrl || undefined} alt={name} />
                 <AvatarFallback className="bg-gradient-primary text-white text-2xl font-bold">
-                  SC
+                  {initials}
                 </AvatarFallback>
               </Avatar>
-              <div className="space-y-3">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Camera className="h-4 w-4" /> Upload new photo
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                >
-                  Remove photo
-                </Button>
+              <div className="flex-1 space-y-3">
+                <div className="space-y-2">
+                  <Label>Avatar URL</Label>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="https://..."
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        updateProfile.mutate({ avatarUrl: avatarUrl || undefined })
+                      }
+                      disabled={updateProfile.isPending}
+                    >
+                      {updateProfile.isPending && (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      )}
+                      Save
+                    </Button>
+                  </div>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  JPG, PNG or GIF. Max 2MB. Recommended 400x400px.
+                  JPG, PNG or GIF. Recommended 400x400px.
                 </p>
               </div>
             </div>
@@ -157,31 +191,48 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Full Name</Label>
-                <Input defaultValue="Sarah Chen" />
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Email Address</Label>
-                <div className="flex">
-                  <Input defaultValue="sarah@agentmax.ai" type="email" />
-                  <Badge
-                    variant="secondary"
-                    className="ml-2 shrink-0 bg-success/10 text-success flex items-center gap-1 self-center"
-                  >
-                    <Check className="h-3 w-3" />
-                    Verified
-                  </Badge>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Input
+                      value={userProfile?.email ?? ""}
+                      type="email"
+                      disabled
+                    />
+                  </div>
+                  {userProfile?.isVerified ? (
+                    <Badge
+                      variant="secondary"
+                      className="shrink-0 bg-success/10 text-success flex items-center gap-1 self-center"
+                    >
+                      <Check className="h-3 w-3" />
+                      Verified
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="shrink-0 self-center">
+                      Unverified
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Company</Label>
-                <Input defaultValue="AgentMax Inc." />
-              </div>
-              <div className="space-y-2">
-                <Label>Job Title</Label>
-                <Input defaultValue="Engineering Lead" />
-              </div>
+            <div className="flex justify-end">
+              <Button
+                onClick={() => updateProfile.mutate({ name })}
+                disabled={!name.trim() || updateProfile.isPending}
+              >
+                {updateProfile.isPending && (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                )}
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -196,26 +247,56 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle className="text-base">Change Password</CardTitle>
             <CardDescription>
-              Update your password to keep your account secure.
+              Update your password to keep your account secure. You'll be
+              signed out of all sessions after changing it.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Current Password</Label>
-              <Input type="password" placeholder="Enter current password" />
+              <Input
+                type="password"
+                placeholder="Enter current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>New Password</Label>
-                <Input type="password" placeholder="Enter new password" />
+                <Input
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Confirm New Password</Label>
-                <Input type="password" placeholder="Confirm new password" />
+                <Input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
               </div>
             </div>
-            <Button className="gap-2">
-              <Key className="h-4 w-4" />
+            {passwordError && (
+              <div className="flex items-center gap-2 text-sm text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                {passwordError}
+              </div>
+            )}
+            <Button
+              className="gap-2"
+              onClick={handleChangePassword}
+              disabled={changePassword.isPending}
+            >
+              {changePassword.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Key className="h-4 w-4 mr-2" />
+              )}
               Update Password
             </Button>
           </CardContent>
@@ -229,48 +310,13 @@ export default function ProfilePage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              Two-Factor Authentication
-            </CardTitle>
+            <CardTitle className="text-base">Two-Factor Authentication</CardTitle>
             <CardDescription>
               Add an extra layer of security to your account.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                    twoFAEnabled ? "bg-success/10" : "bg-muted"
-                  }`}
-                >
-                  <Shield
-                    className={`h-5 w-5 ${
-                      twoFAEnabled ? "text-success" : "text-muted-foreground"
-                    }`}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">
-                    {twoFAEnabled
-                      ? "Two-factor authentication is enabled"
-                      : "Two-factor authentication is not set up"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {twoFAEnabled
-                      ? "Your account is protected with an authenticator app."
-                      : "Secure your account by enabling 2FA via an authenticator app."}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant={twoFAEnabled ? "outline" : "default"}
-                size="sm"
-                onClick={() => setTwoFAEnabled(!twoFAEnabled)}
-              >
-                {twoFAEnabled ? "Disable" : "Enable 2FA"}
-              </Button>
-            </div>
+            <TwoFactorCard enabled={userProfile?.twoFactorEnabled ?? false} />
           </CardContent>
         </Card>
       </motion.div>
@@ -288,61 +334,53 @@ export default function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {sessions.map((session, i) => (
-                <div
-                  key={session.id}
-                  className={`flex items-center justify-between py-3 ${
-                    i < sessions.length - 1 ? "border-b border-border" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {session.device.includes("iPhone") ? (
-                      <Smartphone className="h-5 w-5 text-muted-foreground shrink-0" />
-                    ) : (
-                      <Laptop className="h-5 w-5 text-muted-foreground shrink-0" />
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">{session.device}</p>
-                        {session.current && (
-                          <Badge
-                            variant="secondary"
-                            className="text-[10px] bg-success/10 text-success"
-                          >
-                            Current
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {session.browser} &middot; {session.os}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-xs text-muted-foreground">
-                          IP: {session.ip}
+            {sessions && sessions.length > 0 ? (
+              <div className="space-y-4">
+                {sessions.map((session, i) => (
+                  <div
+                    key={session.id}
+                    className={`flex items-center justify-between py-3 ${
+                      i < sessions.length - 1 ? "border-b border-border" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {session.userAgent && /iPhone|Android/i.test(session.userAgent) ? (
+                        <Smartphone className="h-5 w-5 text-muted-foreground shrink-0" />
+                      ) : (
+                        <Laptop className="h-5 w-5 text-muted-foreground shrink-0" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">
+                          {session.userAgent
+                            ? parseDeviceLabel(session.userAgent)
+                            : "Unknown device"}
                         </p>
-                        <span className="text-muted-foreground">&middot;</span>
                         <p className="text-xs text-muted-foreground">
-                          {session.location}
+                          {session.ipAddress ?? "Unknown IP"} &middot; Signed in{" "}
+                          {formatSessionDate(session.createdAt)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Expires {formatSessionDate(session.expiresAt)}
                         </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Last active: {session.lastActive}
-                      </p>
                     </div>
-                  </div>
-                  {!session.current && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive shrink-0"
+                      disabled={revokeSession.isPending}
+                      onClick={() => revokeSession.mutate(session.id)}
                     >
                       Revoke
                     </Button>
-                  )}
-                </div>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-4">
+                No active sessions found.
+              </p>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -354,76 +392,32 @@ export default function ProfilePage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              Notification Preferences
-            </CardTitle>
+            <CardTitle className="text-base">Notification Preferences</CardTitle>
             <CardDescription>
-              Choose which email notifications you'd like to receive.
+              Manage your notification preferences in workspace settings.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-1">
-            {[
-              {
-                key: "marketing" as const,
-                label: "Product Updates",
-                description: "New features, improvements, and platform updates",
-                icon: Bell,
-              },
-              {
-                key: "product" as const,
-                label: "Security Alerts",
-                description:
-                  "Important security notifications and login alerts",
-                icon: Shield,
-              },
-              {
-                key: "security" as const,
-                label: "Account Activity",
-                description: "Changes to your account settings and profile",
-                icon: Key,
-              },
-              {
-                key: "weekly" as const,
-                label: "Weekly Digest",
-                description:
-                  "Weekly summary of your agents' performance and usage",
-                icon: Mail,
-              },
-              {
-                key: "monthly" as const,
-                label: "Monthly Report",
-                description: "Monthly billing and analytics report",
-                icon: Globe,
-              },
-            ].map((item, i, arr) => (
-              <div
-                key={item.key}
-                className={`flex items-center justify-between py-4 ${
-                  i < arr.length - 1 ? "border-b border-border" : ""
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <item.icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">{item.label}</Label>
-                    <p className="text-xs text-muted-foreground">
-                      {item.description}
-                    </p>
-                  </div>
+          <CardContent>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Mail className="h-4 w-4 text-primary" />
                 </div>
-                <Switch
-                  checked={emailNotifications[item.key]}
-                  onCheckedChange={(checked) =>
-                    setEmailNotifications((prev) => ({
-                      ...prev,
-                      [item.key]: checked,
-                    }))
-                  }
-                />
+                <div>
+                  <Label className="text-sm font-medium">Email & In-app Notifications</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Control which notifications you receive.
+                  </p>
+                </div>
               </div>
-            ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/settings?tab=notifications")}
+              >
+                Manage
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </motion.div>

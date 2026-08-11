@@ -33,7 +33,7 @@ export function createApp(): Express {
 
   // Logging & Rate Limiting
   app.use(requestLogger);
-  app.use(globalRateLimiter);
+  // app.use(globalRateLimiter);
 
   // Swagger OpenAPI Specs
   setupSwagger(app);

@@ -10,6 +10,17 @@ export interface UpdateWorkspaceDTO {
   logoUrl?: string;
 }
 
+export interface UpdateBrandingDTO {
+  primaryColor?: string;
+  accentColor?: string;
+  faviconUrl?: string;
+  bannerText?: string;
+}
+
+export interface UpdateSecurityDTO {
+  ipWhitelist: string[];
+}
+
 export interface InviteMemberDTO {
   email: string;
   role?: WorkspaceRole;

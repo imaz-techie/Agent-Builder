@@ -10,6 +10,22 @@ export interface RegisterDTO {
 export interface LoginDTO {
   email: string;
   password: string;
+  totpCode?: string;
+}
+
+export interface RequestMeta {
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}
+
+export interface UpdateProfileDTO {
+  name?: string;
+  avatarUrl?: string | null;
+}
+
+export interface ChangePasswordDTO {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface RefreshTokenDTO {
@@ -32,6 +48,7 @@ export interface UserResponse {
   avatarUrl: string | null;
   role: Role;
   isVerified: boolean;
+  twoFactorEnabled: boolean;
   createdAt: Date;
 }
 

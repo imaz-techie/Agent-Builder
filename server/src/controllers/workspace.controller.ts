@@ -48,6 +48,28 @@ export async function updateWorkspace(req: Request, res: Response) {
   });
 }
 
+export async function updateBranding(req: Request, res: Response) {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const workspace = await workspaceService.updateBranding(id, req.user!.id, req.body);
+  return sendApiResponse({
+    res,
+    statusCode: 200,
+    message: "Workspace branding updated successfully",
+    data: { workspace },
+  });
+}
+
+export async function updateSecurity(req: Request, res: Response) {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const workspace = await workspaceService.updateSecurity(id, req.user!.id, req.body);
+  return sendApiResponse({
+    res,
+    statusCode: 200,
+    message: "Workspace security settings updated successfully",
+    data: { workspace },
+  });
+}
+
 export async function deleteWorkspace(req: Request, res: Response) {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   await workspaceService.deleteWorkspace(id, req.user!.id);
