@@ -76,13 +76,26 @@ function parseLogLine(line: string): { time: string; message: string } {
   return { time: "", message: line };
 }
 
-function LogLevelIcon({ message }: { message: string }) {
+type LogLevel = "info" | "success" | "warning" | "error";
+
+function logLevelOf(message: string): LogLevel {
   const lower = message.toLowerCase();
-  if (lower.includes("success") || lower.includes("complete")) {
-    return <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-400" />;
+  if (lower.includes("fail") || lower.includes("error")) return "error";
+  if (lower.includes("warn") || lower.includes("skip")) return "warning";
+  if (lower.includes("success") || lower.includes("complete")) return "success";
+  return "info";
+}
+
+function LogLevelIcon({ message }: { message: string }) {
+  const level = logLevelOf(message);
+  if (level === "error") {
+    return <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-red-400" />;
   }
-  if (lower.includes("fail") || lower.includes("error") || lower.includes("skipping")) {
+  if (level === "warning") {
     return <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400" />;
+  }
+  if (level === "success") {
+    return <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-400" />;
   }
   return <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-blue-400" />;
 }
@@ -139,6 +152,11 @@ export default function TrainingCenterPage() {
   });
 
   const parsedLogs = logs.map(parseLogLine);
+
+  const filteredLogs =
+    logFilter === "all"
+      ? parsedLogs
+      : parsedLogs.filter((log) => logLevelOf(log.message) === logFilter);
 
   const activeCount = jobs.filter((j) => j.status === "IN_PROGRESS").length;
   const queuedCount = jobs.filter((j) => j.status === "QUEUED").length;
@@ -519,9 +537,13 @@ export default function TrainingCenterPage() {
                     </div>
                   ) : parsedLogs.length === 0 ? (
                     <p className="text-zinc-500 py-8 text-center">No logs available for this job.</p>
+                  ) : filteredLogs.length === 0 ? (
+                    <p className="text-zinc-500 py-8 text-center">
+                      No logs match the selected filter.
+                    </p>
                   ) : (
                     <AnimatePresence>
-                      {parsedLogs.map((log, i) => (
+                      {filteredLogs.map((log, i) => (
                         <motion.div
                           key={`${log.time}-${i}`}
                           initial={{ opacity: 0, x: -4 }}

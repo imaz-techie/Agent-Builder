@@ -17,6 +17,7 @@ import {
   Loader2,
   Save,
   Globe,
+  Plus,
 } from "lucide-react";
 import {
   Card,
@@ -196,6 +197,13 @@ export default function EmbedWidgetPage() {
   const [allowFileUpload, setAllowFileUpload] = useState(DEFAULT_CONFIG.allowFileUpload!);
   const [enableRag, setEnableRag] = useState(DEFAULT_CONFIG.enableRag!);
   const [prePrompt, setPrePrompt] = useState("");
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([
+    "What products do you offer?",
+    "How do I get started?",
+    "Pricing information",
+  ]);
+  const [previewMessage, setPreviewMessage] = useState("");
+  const [previewMessages, setPreviewMessages] = useState<Array<{ from: "user" | "agent"; text: string }>>([]);
   const [widgetId, setWidgetId] = useState<string | null>(null);
   const [isPublished, setIsPublished] = useState(false);
   const [widgetToken, setWidgetToken] = useState("");
@@ -226,6 +234,11 @@ export default function EmbedWidgetPage() {
       setAllowFileUpload(config.allowFileUpload);
       setEnableRag(config.enableRag);
       setPrePrompt(config.prePrompt ?? "");
+      setSuggestedQuestions(
+        config.suggestedQuestions?.length
+          ? config.suggestedQuestions.slice(0, 10)
+          : ["What products do you offer?", "How do I get started?", "Pricing information"]
+      );
       setWidgetId(config.id);
       setIsPublished(config.isPublished);
       setWidgetToken(config.widgetToken);
@@ -248,6 +261,12 @@ export default function EmbedWidgetPage() {
       setAllowFileUpload(DEFAULT_CONFIG.allowFileUpload!);
       setEnableRag(DEFAULT_CONFIG.enableRag!);
       setPrePrompt("");
+      setSuggestedQuestions([
+        "What products do you offer?",
+        "How do I get started?",
+        "Pricing information",
+      ]);
+      setPreviewMessages([]);
       setDirty(false);
     }
   }, [selectedAgentId]);
@@ -282,6 +301,7 @@ export default function EmbedWidgetPage() {
         allowFileUpload,
         enableRag,
         prePrompt: prePrompt || null,
+        suggestedQuestions: suggestedQuestions.filter((q) => q.trim().length > 0),
       },
       {
         onSuccess: (savedConfig) => {
@@ -312,11 +332,28 @@ export default function EmbedWidgetPage() {
     mobile: "375px",
   };
 
-  const suggestedQuestions = [
-    "What products do you offer?",
-    "How do I get started?",
-    "Pricing information",
-  ];
+  const handleSendPreview = () => {
+    const text = previewMessage.trim();
+    if (!text) return;
+    setPreviewMessages((prev) => [...prev, { from: "user", text }]);
+    setPreviewMessage("");
+    setTimeout(() => {
+      setPreviewMessages((prev) => [
+        ...prev,
+        {
+          from: "agent",
+          text: `Thanks for your message. The ${activeAgent?.name ?? "assistant"} will answer from your configured knowledge base.`,
+        },
+      ]);
+    }, 700);
+  };
+
+  const updateQuestion = (index: number, value: string) => {
+    setSuggestedQuestions((prev) =>
+      prev.map((q, i) => (i === index ? value : q))
+    );
+    setDirty(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -603,18 +640,70 @@ export default function EmbedWidgetPage() {
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap gap-1.5 pl-8">
-                              {suggestedQuestions.map((q, i) => (
-                                <button
-                                  key={i}
-                                  className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-border hover:bg-muted transition-colors"
+                            {previewMessages.map((msg, i) => (
+                              <div
+                                key={i}
+                                className={`flex items-start gap-2 ${
+                                  msg.from === "user" ? "justify-end" : ""
+                                }`}
+                              >
+                                {msg.from === "agent" && showAvatar && (
+                                  <div
+                                    className="h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                                    style={{ background: `${primaryColor}20` }}
+                                  >
+                                    <Bot
+                                      className="h-3 w-3"
+                                      style={{ color: primaryColor }}
+                                    />
+                                  </div>
+                                )}
+                                <div
+                                  className={`px-3 py-2 max-w-[220px] ${
+                                    msg.from === "user"
+                                      ? "rounded-xl rounded-br-sm text-white"
+                                      : "bg-muted rounded-xl rounded-tl-sm"
+                                  }`}
+                                  style={
+                                    msg.from === "user"
+                                      ? { background: primaryColor }
+                                      : undefined
+                                  }
                                 >
-                                  {q}
-                                </button>
-                              ))}
+                                  <p className="text-xs break-words">{msg.text}</p>
+                                </div>
+                              </div>
+                            ))}
+
+                            <div className="flex flex-wrap gap-1.5 pl-8">
+                              {suggestedQuestions
+                                .filter((q) => q.trim())
+                                .map((q, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => {
+                                      setPreviewMessages((prev) => [
+                                        ...prev,
+                                        { from: "user", text: q },
+                                      ]);
+                                      setTimeout(() => {
+                                        setPreviewMessages((prev) => [
+                                          ...prev,
+                                          {
+                                            from: "agent",
+                                            text: `Here is what the ${activeAgent?.name ?? "assistant"} knows about that.`,
+                                          },
+                                        ]);
+                                      }, 700);
+                                    }}
+                                    className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-border hover:bg-muted transition-colors"
+                                  >
+                                    {q}
+                                  </button>
+                                ))}
                             </div>
 
-                            {typingIndicator && (
+                            {typingIndicator && previewMessages.length > 0 && (
                               <div className="flex items-start gap-2">
                                 <div
                                   className="h-6 w-6 rounded-full flex items-center justify-center shrink-0"
@@ -663,13 +752,18 @@ export default function EmbedWidgetPage() {
                           <div className="flex items-center gap-2">
                             <Input
                               placeholder={placeholder}
+                              value={previewMessage}
+                              onChange={(e) => setPreviewMessage(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSendPreview();
+                              }}
                               className="h-9 text-xs flex-1"
-                              readOnly
                             />
                             <Button
                               size="icon"
                               className="h-9 w-9 shrink-0"
                               style={{ background: primaryColor }}
+                              onClick={handleSendPreview}
                             >
                               <Send className="h-3.5 w-3.5 text-white" />
                             </Button>
@@ -887,9 +981,44 @@ export default function EmbedWidgetPage() {
 
               <div className="space-y-2">
                 <Label className="text-xs">Suggested Questions</Label>
-                {suggestedQuestions.map((q, i) => (
-                  <Input key={i} defaultValue={q} className="text-xs h-8" />
-                ))}
+                <div className="space-y-1.5">
+                  {suggestedQuestions.map((q, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <Input
+                        value={q}
+                        onChange={(e) => updateQuestion(i, e.target.value)}
+                        placeholder={`Question ${i + 1}`}
+                        className="text-xs h-8"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          setSuggestedQuestions((prev) =>
+                            prev.filter((_, idx) => idx !== i)
+                          );
+                          setDirty(true);
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                {suggestedQuestions.length < 10 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs w-full"
+                    onClick={() => {
+                      setSuggestedQuestions((prev) => [...prev, ""]);
+                      setDirty(true);
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add question
+                  </Button>
+                )}
               </div>
 
               <Separator />

@@ -8,7 +8,6 @@ import { Sparkles, Eye, EyeOff, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -22,12 +21,6 @@ const features = [
   "Multi-language support out of the box",
   "Enterprise-grade security and compliance",
   "Real-time analytics and monitoring",
-];
-
-const socialProviders = [
-  { name: "Google", color: "bg-[#ea4335]", letter: "G" },
-  { name: "GitHub", color: "bg-[#333]", letter: "GH" },
-  { name: "Microsoft", color: "bg-[#00a4ef]", letter: "MS" },
 ];
 
 import { useLoginMutation } from "@/hooks/mutations/useAuthMutations";
@@ -121,32 +114,6 @@ export default function LoginPage() {
             <p className="text-muted-foreground">
               Sign in to your account to continue.
             </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {socialProviders.map((provider) => (
-              <Button
-                key={provider.name}
-                variant="outline"
-                className="gap-2 h-11"
-              >
-                <div
-                  className={`h-5 w-5 rounded-full ${provider.color} flex items-center justify-center`}
-                >
-                  <span className="text-[10px] font-bold text-white">
-                    {provider.letter}
-                  </span>
-                </div>
-                <span className="text-sm">{provider.name}</span>
-              </Button>
-            ))}
-          </div>
-
-          <div className="relative mb-6">
-            <Separator />
-            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground">
-              or continue with email
-            </span>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

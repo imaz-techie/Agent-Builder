@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDropzone } from "react-dropzone";
+import { toast } from "sonner";
 import {
   Upload,
   Search,
@@ -30,6 +31,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -41,7 +49,12 @@ import {
   useUploadKnowledgeFileMutation,
   useDeleteKnowledgeFileMutation,
 } from "@/hooks/mutations/useKnowledgeMutations";
-import type { KnowledgeFileType, KnowledgeFileStatus } from "@/types/knowledge.types";
+import { knowledgeService } from "@/services/knowledge.service";
+import type {
+  KnowledgeFile,
+  KnowledgeFileStatus,
+  KnowledgeChunk,
+} from "@/types/knowledge.types";
 import { formatFileSize } from "@/types/knowledge.types";
 import { formatRelativeTime, cn, formatNumber } from "@/lib/utils";
 
@@ -112,6 +125,9 @@ export default function KnowledgeBasePage() {
   const [sortKey, setSortKey] = useState<SortKey>("uploadedAt");
   const [sortAsc, setSortAsc] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [detailsFile, setDetailsFile] = useState<KnowledgeFile | null>(null);
+  const [detailsChunks, setDetailsChunks] = useState<KnowledgeChunk[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   const { data: files = [], isLoading, isError } = useKnowledgeFilesQuery();
   const uploadMutation = useUploadKnowledgeFileMutation();
@@ -125,7 +141,7 @@ export default function KnowledgeBasePage() {
     [uploadMutation]
   );
 
-  const { getRootProps, getInputProps } = useDropzone({
+  const { getRootProps, getInputProps, open } = useDropzone({
     onDrop,
     onDragEnter: () => setIsDragActive(true),
     onDragLeave: () => setIsDragActive(false),
@@ -139,6 +155,33 @@ export default function KnowledgeBasePage() {
     },
     maxSize: 50 * 1024 * 1024,
   });
+
+  const openDetails = useCallback((file: KnowledgeFile) => {
+    setDetailsFile(file);
+    setDetailsChunks([]);
+    setDetailsLoading(true);
+    knowledgeService
+      .getFileDetails(file.id)
+      .then((details) => {
+        setDetailsChunks(details.chunks);
+      })
+      .catch(() => {
+        toast.error("Failed to load file details", {
+          description: "The file could not be retrieved. Please try again.",
+        });
+      })
+      .finally(() => setDetailsLoading(false));
+  }, []);
+
+  const downloadFile = useCallback((file: KnowledgeFile) => {
+    if (file.url) {
+      window.open(file.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    toast.error("Download not available", {
+      description: "This file has no downloadable URL. Upload it again to enable downloads.",
+    });
+  }, []);
 
   const filteredFiles = files
     .filter((f) => {
@@ -192,7 +235,7 @@ export default function KnowledgeBasePage() {
             Manage your training data and knowledge sources
           </p>
         </div>
-        <Button className="gap-2 shadow-sm">
+        <Button className="gap-2 shadow-sm" onClick={open}>
           <Upload className="h-4 w-4" />
           Upload Files
         </Button>
@@ -422,10 +465,10 @@ export default function KnowledgeBasePage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="gap-2">
+                              <DropdownMenuItem className="gap-2" onClick={() => openDetails(file)}>
                                 <Eye className="h-3.5 w-3.5" /> View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2">
+                              <DropdownMenuItem className="gap-2" onClick={() => downloadFile(file)}>
                                 <Download className="h-3.5 w-3.5" /> Download
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -460,6 +503,78 @@ export default function KnowledgeBasePage() {
           )}
         </Card>
       </div>
+
+      <Dialog
+        open={Boolean(detailsFile)}
+        onOpenChange={(open) => {
+          if (!open) setDetailsFile(null);
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          {detailsFile && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2.5">
+                  <span className="text-base font-semibold truncate">
+                    {detailsFile.name}
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] uppercase font-mono shrink-0">
+                    {detailsFile.type}
+                  </Badge>
+                </DialogTitle>
+                <DialogDescription>
+                  File details and indexed chunks for this knowledge source.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: "Size", value: formatFileSize(detailsFile.sizeBytes) },
+                  { label: "Chunks", value: formatNumber(detailsFile.chunksCount) },
+                  { label: "Uploaded", value: formatRelativeTime(detailsFile.createdAt) },
+                  { label: "Status", value: statusConfig[detailsFile.status].label },
+                ].map((meta) => (
+                  <div key={meta.label} className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {meta.label}
+                    </p>
+                    <p className="mt-0.5 text-sm font-medium capitalize">{meta.value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {detailsLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : detailsChunks.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-muted-foreground">
+                    No chunks indexed for this file yet.
+                  </p>
+                ) : (
+                  detailsChunks.map((chunk) => (
+                    <div
+                      key={chunk.id}
+                      className="rounded-xl border border-border/70 bg-card p-3.5"
+                    >
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Chunk {chunk.chunkIndex + 1}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {formatNumber(chunk.tokenCount)} tokens
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-4 leading-relaxed">
+                        {chunk.content}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

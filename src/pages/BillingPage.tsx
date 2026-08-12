@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   useBillingAccountQuery,
   useInvoicesQuery,
@@ -28,50 +29,45 @@ import {
 
 const plans = [
   {
+    name: "FREE",
+    price: 0,
+    description: "For trying out AgentMax with a single agent.",
+    features: ["1M tokens/mo", "1 seat", "2 active agents"],
+    icon: Coins,
+  },
+  {
     name: "PRO",
-    price: 49,
+    price: 20,
     description: "For growing teams that need more power and flexibility.",
     features: [
-      "25 agents",
-      "100,000 conversations/mo",
-      "Advanced analytics",
+      "10M tokens/mo",
+      "5 seats",
+      "Unlimited agents",
       "Priority support",
-      "10 GB storage",
-      "Custom models",
-      "API access",
     ],
     icon: Star,
   },
   {
     name: "BUSINESS",
-    price: 99,
+    price: 79,
     description: "For organizations with advanced needs and scale.",
     features: [
-      "100 agents",
-      "1,000,000 conversations/mo",
-      "Full analytics suite",
-      "24/7 dedicated support",
-      "100 GB storage",
-      "Custom models",
-      "Full API access",
-      "SSO & SAML",
+      "50M tokens/mo",
+      "25 seats",
+      "SSO",
+      "Custom domains",
     ],
     icon: Building2,
   },
   {
     name: "ENTERPRISE",
-    price: 299,
+    price: 499,
     description: "For organizations that need custom solutions and compliance.",
     features: [
-      "Unlimited agents",
-      "Unlimited conversations",
-      "Full analytics suite",
-      "24/7 dedicated support",
-      "Unlimited storage",
-      "Custom models",
-      "Full API access",
-      "SSO & SAML",
-      "SLA guarantee",
+      "500M tokens/mo",
+      "Unlimited seats",
+      "Dedicated infrastructure",
+      "SLA",
     ],
     icon: Zap,
   },
@@ -93,6 +89,10 @@ export default function BillingPage() {
   const updatePlanMutation = useUpdatePlanMutation();
 
   const currentPlan = account?.plan || summary?.plan || "PRO";
+
+  const downloadInvoice = () => {
+    toast.info("Invoice PDF downloads will be available once Stripe billing is enabled");
+  };
 
   const usageStats: UsageStat[] = [
     {
@@ -168,13 +168,34 @@ export default function BillingPage() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" className="gap-2">
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() =>
+                    document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" })
+                  }
+                >
                   <ArrowUpRight className="h-4 w-4" />
                   Upgrade Plan
                 </Button>
-                <Button variant="ghost" className="text-muted-foreground">
-                  Cancel
-                </Button>
+                {currentPlan !== "FREE" && (
+                  <Button
+                    variant="ghost"
+                    className="text-muted-foreground"
+                    disabled={updatePlanMutation.isPending}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Cancel your subscription and downgrade to the FREE plan? You'll lose access to paid features at the end of the current period."
+                        )
+                      ) {
+                        updatePlanMutation.mutate("FREE");
+                      }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -225,7 +246,7 @@ export default function BillingPage() {
 
       <div>
         <h2 className="text-lg font-semibold mb-4">Available Plans</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div id="plans" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {plans.map((plan, i) => {
             const isCurrent = currentPlan === plan.name;
             return (
@@ -302,26 +323,29 @@ export default function BillingPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-16 rounded-lg bg-muted flex items-center justify-center">
-                    <span className="text-xs font-bold text-info">VISA</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Visa ending in 4242</p>
-                    <p className="text-xs text-muted-foreground">Expires 12/2028</p>
-                  </div>
+            <div className="flex items-center justify-between p-4 rounded-xl border border-dashed border-border bg-muted/40">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <Badge variant="secondary" className="text-[10px]">
-                  Default
-                </Badge>
+                <div>
+                  <p className="text-sm font-medium">No payment method on file</p>
+                  <p className="text-xs text-muted-foreground">
+                    Payment methods are added during checkout when upgrading.
+                  </p>
+                </div>
               </div>
-              <Button variant="outline" className="gap-2 w-full">
-                <Plus className="h-4 w-4" />
-                Add Payment Method
-              </Button>
             </div>
+            <Button
+              variant="outline"
+              className="gap-2 w-full mt-3"
+              onClick={() =>
+                document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" })
+              }
+            >
+              <Plus className="h-4 w-4" />
+              Upgrade to add a payment method
+            </Button>
           </CardContent>
         </Card>
       </motion.div>
@@ -408,6 +432,7 @@ export default function BillingPage() {
                           variant="ghost"
                           size="sm"
                           className="gap-1.5 text-muted-foreground hover:text-foreground"
+                          onClick={downloadInvoice}
                         >
                           <Download className="h-3.5 w-3.5" />
                           PDF

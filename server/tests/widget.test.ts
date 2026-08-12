@@ -62,6 +62,7 @@ describe("Phase 12 Embed Widget Endpoints", () => {
     isPublished: true,
     widgetToken,
     customDomain: null,
+    suggestedQuestions: ["What is your return policy?", "How do I cancel my order?"],
     createdAt: new Date(),
     updatedAt: new Date(),
     agent: mockAgent,
@@ -92,6 +93,10 @@ describe("Phase 12 Embed Widget Endpoints", () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data.config.id).toBe(widgetId);
+    expect(res.body.data.config.suggestedQuestions).toEqual([
+      "What is your return policy?",
+      "How do I cancel my order?",
+    ]);
   });
 
   it("GET /api/v1/workspaces/:id/agents/:agentId/widget should return widget config", async () => {
@@ -164,6 +169,10 @@ describe("Phase 12 Embed Widget Endpoints", () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data.config.agent.name).toBe("Customer Support Agent");
     expect(res.body.data.config.widgetToken).toBe(widgetToken);
+    expect(res.body.data.config.suggestedQuestions).toEqual([
+      "What is your return policy?",
+      "How do I cancel my order?",
+    ]);
   });
 
   it("POST /api/v1/public/widgets/:token/chat should process widget message without auth", async () => {

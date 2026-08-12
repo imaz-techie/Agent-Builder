@@ -21,6 +21,7 @@ export interface ChatWidgetConfig {
   allowFileUpload: boolean;
   enableRag: boolean;
   prePrompt: string | null;
+  suggestedQuestions: string[];
   isPublished: boolean;
   widgetToken: string;
   customDomain: string | null;
@@ -40,6 +41,7 @@ export interface UpsertWidgetConfigDto {
   allowFileUpload?: boolean;
   enableRag?: boolean;
   prePrompt?: string | null;
+  suggestedQuestions?: string[];
   customDomain?: string | null;
 }
 
@@ -63,5 +65,6 @@ export interface PublicWidgetConfig {
   allowFileUpload: boolean;
   enableRag: boolean;
   prePrompt: string | null;
+  suggestedQuestions: string[];
   agent: PublicWidgetAgent;
 }

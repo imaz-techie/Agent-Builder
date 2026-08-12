@@ -14,7 +14,6 @@ import {
   Key,
   CreditCard,
   Settings,
-  HelpCircle,
   Search,
   Bell,
   BellRing,
@@ -55,6 +54,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useProfileQuery } from "@/hooks/queries/useAuthQueries";
+import { useAgentsQuery } from "@/hooks/queries/useAgentQueries";
 import {
   useWorkspacesQuery,
   useActiveWorkspaceId,
@@ -70,6 +70,7 @@ import {
 } from "@/hooks/mutations/useNotificationMutations";
 import { setActiveWorkspaceId } from "@/lib/workspace-id";
 import { STORAGE_KEYS } from "@/constants/api.constants";
+import CommandPalette, { openCommandPalette } from "./CommandPalette";
 import type { AppNotification } from "@/types/notification.types";
 
 const SIDEBAR_WIDTH = 260;
@@ -88,6 +89,13 @@ function useIsAdmin(): boolean {
   const { data: userProfile } = useProfileQuery();
   const stored = readStoredUser();
   return userProfile?.role === "ADMIN" || stored?.role === "ADMIN";
+}
+
+function useSidebarBadges(): Record<string, string> {
+  const { data: agents } = useAgentsQuery({ limit: 100 });
+  return {
+    "/agents": agents && agents.length > 0 ? String(agents.length) : "",
+  };
 }
 
 const ADMIN_NAV_GROUP: NavGroup = {
@@ -115,7 +123,7 @@ const navGroups: NavGroup[] = [
   {
     label: "AI Tools",
     items: [
-      { label: "Agents", path: "/agents", icon: Bot, badge: "8" },
+      { label: "Agents", path: "/agents", icon: Bot },
       { label: "Knowledge Base", path: "/knowledge", icon: Database },
       { label: "Training", path: "/training", icon: GraduationCap },
       { label: "Prompt Studio", path: "/prompts", icon: FileCode2 },
@@ -131,12 +139,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Monitor",
     items: [
-      {
-        label: "Conversations",
-        path: "/conversations",
-        icon: MessageSquare,
-        badge: "12",
-      },
+      { label: "Conversations", path: "/conversations", icon: MessageSquare },
       { label: "Analytics", path: "/analytics", icon: BarChart3 },
     ],
   },
@@ -146,7 +149,6 @@ const navGroups: NavGroup[] = [
       { label: "API Keys", path: "/api-keys", icon: Key },
       { label: "Billing", path: "/billing", icon: CreditCard },
       { label: "Settings", path: "/settings", icon: Settings },
-      { label: "Help Center", path: "/help", icon: HelpCircle },
     ],
   },
 ];
@@ -154,10 +156,13 @@ const navGroups: NavGroup[] = [
 function SidebarNavItem({
   item,
   collapsed,
+  badges,
 }: {
   item: NavItem;
   collapsed: boolean;
+  badges?: Record<string, string>;
 }) {
+  const badge = item.badge || badges?.[item.path];
   return (
     <Tooltip delayDuration={0}>
       <TooltipTrigger asChild>
@@ -203,12 +208,12 @@ function SidebarNavItem({
                   </motion.span>
                 )}
               </AnimatePresence>
-              {!collapsed && item.badge && (
+              {!collapsed && badge && (
                 <Badge
                   variant="secondary"
                   className="ml-auto h-5 px-1.5 text-[10px] font-semibold bg-primary/10 text-primary border-0 shrink-0"
                 >
-                  {item.badge}
+                  {badge}
                 </Badge>
               )}
             </>
@@ -218,8 +223,8 @@ function SidebarNavItem({
       {collapsed && (
         <TooltipContent side="right" sideOffset={8}>
           {item.label}
-          {item.badge && (
-            <span className="ml-1.5 text-primary">({item.badge})</span>
+          {badge && (
+            <span className="ml-1.5 text-primary">({badge})</span>
           )}
         </TooltipContent>
       )}
@@ -230,15 +235,22 @@ function SidebarNavItem({
 function SidebarNavGroup({
   group,
   collapsed,
+  badges,
 }: {
   group: NavGroup;
   collapsed: boolean;
+  badges?: Record<string, string>;
 }) {
   if (collapsed) {
     return (
       <div className="flex flex-col gap-0.5">
         {group.items.map((item) => (
-          <SidebarNavItem key={item.path} item={item} collapsed={collapsed} />
+          <SidebarNavItem
+            key={item.path}
+            item={item}
+            collapsed={collapsed}
+            badges={badges}
+          />
         ))}
       </div>
     );
@@ -251,7 +263,12 @@ function SidebarNavGroup({
       </p>
       <div className="flex flex-col gap-0.5">
         {group.items.map((item) => (
-          <SidebarNavItem key={item.path} item={item} collapsed={collapsed} />
+          <SidebarNavItem
+            key={item.path}
+            item={item}
+            collapsed={collapsed}
+            badges={badges}
+          />
         ))}
       </div>
     </div>
@@ -267,6 +284,7 @@ function MobileSidebar({
 }) {
   const location = useLocation();
   const isAdmin = useIsAdmin();
+  const badges = useSidebarBadges();
 
   useEffect(() => {
     onClose();
@@ -316,10 +334,15 @@ function MobileSidebar({
                     key={group.label}
                     group={group}
                     collapsed={false}
+                    badges={badges}
                   />
                 ))}
                 {isAdmin && (
-                  <SidebarNavGroup group={ADMIN_NAV_GROUP} collapsed={false} />
+                  <SidebarNavGroup
+                    group={ADMIN_NAV_GROUP}
+                    collapsed={false}
+                    badges={badges}
+                  />
                 )}
               </div>
             </ScrollArea>
@@ -482,9 +505,9 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
   const storedUser = getStoredUser();
   const user = userProfile || storedUser;
 
-  const userName = user?.name || "Imaz";
-  const userEmail = user?.email || "imaz@agentmax.ai";
-  const userRole = user?.role || "Admin";
+  const userName = user?.name || "Guest";
+  const userEmail = user?.email || "";
+  const userRole = user?.role || "Viewer";
 
   const getInitials = (name: string) => {
     const parts = name.trim().split(" ");
@@ -505,15 +528,24 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/50 border border-border/50 text-muted-foreground cursor-pointer hover:bg-muted hover:border-border transition-all flex-1 max-w-xs">
+      <button
+        type="button"
+        onClick={openCommandPalette}
+        className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/50 border border-border/50 text-muted-foreground cursor-pointer hover:bg-muted hover:border-border transition-all flex-1 max-w-xs"
+      >
         <Search className="h-4 w-4 shrink-0" />
         <span className="text-sm">Search...</span>
         <kbd className="ml-auto text-[10px] font-mono bg-background/80 border border-border/60 rounded-md px-1.5 py-0.5 text-muted-foreground/70">
           Ctrl+K
         </kbd>
-      </div>
+      </button>
 
-      <Button variant="ghost" size="icon" className="md:hidden h-9 w-9">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="md:hidden h-9 w-9"
+        onClick={openCommandPalette}
+      >
         <Search className="h-5 w-5" />
       </Button>
 
@@ -566,7 +598,10 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
               ))
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-primary gap-2.5">
+            <DropdownMenuItem
+              className="text-primary gap-2.5"
+              onClick={() => navigate("/settings?tab=workspace")}
+            >
               <Zap className="h-4 w-4" />
               Create new workspace
             </DropdownMenuItem>
@@ -626,22 +661,27 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/profile")}>
               <User className="h-4 w-4 mr-2.5" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
               <Settings className="h-4 w-4 mr-2.5" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/billing")}>
               <CreditCard className="h-4 w-4 mr-2.5" />
               Billing
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onClick={() => navigate("/login")}
+              onClick={() => {
+                Object.values(STORAGE_KEYS).forEach((key) =>
+                  sessionStorage.removeItem(key)
+                );
+                navigate("/login");
+              }}
             >
               <LogOut className="h-4 w-4 mr-2.5" />
               Logout
@@ -658,6 +698,7 @@ export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const isAdmin = useIsAdmin();
+  const badges = useSidebarBadges();
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -674,6 +715,7 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <CommandPalette />
       {!isMobile && (
         <motion.aside
           animate={{ width: sidebarWidth }}
@@ -718,10 +760,15 @@ export default function AppLayout() {
                   key={group.label}
                   group={group}
                   collapsed={collapsed}
+                  badges={badges}
                 />
               ))}
               {isAdmin && (
-                <SidebarNavGroup group={ADMIN_NAV_GROUP} collapsed={collapsed} />
+                <SidebarNavGroup
+                  group={ADMIN_NAV_GROUP}
+                  collapsed={collapsed}
+                  badges={badges}
+                />
               )}
             </div>
           </ScrollArea>

@@ -75,9 +75,14 @@ export default function ApiKeysPage() {
     "https://api.agentmax.ai/webhooks/v1/events",
   );
 
-  const handleCopyKey = (keyId: string) => {
-    setShowCopied(keyId);
-    setTimeout(() => setShowCopied(null), 2000);
+  const handleCopyKey = async (apiKey: { id: string; keyPrefix: string }) => {
+    try {
+      await navigator.clipboard.writeText(apiKey.keyPrefix);
+      setShowCopied(apiKey.id);
+      setTimeout(() => setShowCopied(null), 2000);
+    } catch {
+      toast.error("Failed to copy key");
+    }
   };
 
   const handleCopySecret = async (secret: string) => {
@@ -229,7 +234,7 @@ export default function ApiKeysPage() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
-                                  onClick={() => handleCopyKey(apiKey.id)}
+                                  onClick={() => handleCopyKey(apiKey)}
                                   className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                                 >
                                   {showCopied === apiKey.id ? (
@@ -284,7 +289,7 @@ export default function ApiKeysPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 className="gap-2"
-                                onClick={() => handleCopyKey(apiKey.id)}
+                                onClick={() => handleCopyKey(apiKey)}
                               >
                                 <Copy className="h-3.5 w-3.5" /> Copy Key
                               </DropdownMenuItem>

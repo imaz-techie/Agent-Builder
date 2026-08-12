@@ -15,6 +15,7 @@ export interface UpsertWidgetConfigDTO {
   allowFileUpload?: boolean;
   enableRag?: boolean;
   prePrompt?: string;
+  suggestedQuestions?: string[];
   customDomain?: string;
 }
 
@@ -31,6 +32,7 @@ export interface PublicWidgetConfigResponse {
   allowFileUpload: boolean;
   enableRag: boolean;
   prePrompt: string | null;
+  suggestedQuestions: string[];
   agent: {
     id: string;
     name: string;

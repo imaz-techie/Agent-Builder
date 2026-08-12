@@ -1,7 +1,10 @@
 import { apiClient } from "@/api/axios";
 import { API_ENDPOINTS } from "@/constants/api.constants";
 import type { ApiResponse } from "@/types/api.types";
-import type { KnowledgeFile } from "@/types/knowledge.types";
+import type {
+  KnowledgeFile,
+  KnowledgeFileDetails,
+} from "@/types/knowledge.types";
 
 export const knowledgeService = {
   async getKnowledgeFiles(workspaceId: string = "ws_default"): Promise<KnowledgeFile[]> {
@@ -9,6 +12,16 @@ export const knowledgeService = {
       API_ENDPOINTS.WORKSPACES.KNOWLEDGE_FILES(workspaceId)
     );
     return response.data.data.files;
+  },
+
+  async getFileDetails(
+    fileId: string,
+    workspaceId: string = "ws_default"
+  ): Promise<KnowledgeFileDetails> {
+    const response = await apiClient.get<ApiResponse<KnowledgeFileDetails>>(
+      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_FILE_DETAIL(workspaceId, fileId)
+    );
+    return response.data.data;
   },
 
   async uploadKnowledgeFile(file: File, workspaceId: string = "ws_default"): Promise<KnowledgeFile> {

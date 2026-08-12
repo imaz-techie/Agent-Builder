@@ -629,6 +629,7 @@ model ChatWidgetConfig {
   allowFileUpload  Boolean              @default(false)
   enableRag        Boolean              @default(true)
   prePrompt        String?
+  suggestedQuestions String[]          @default([])
   isPublished      Boolean              @default(false)
   widgetToken      String               @unique
   customDomain     String?

@@ -17,6 +17,10 @@ export const upsertWidgetConfigSchema = z.object({
     allowFileUpload: z.boolean().optional(),
     enableRag: z.boolean().optional(),
     prePrompt: z.string().max(2000).optional().nullable(),
+    suggestedQuestions: z
+      .array(z.string().min(1).max(200))
+      .max(10)
+      .optional(),
     customDomain: z.string().optional().nullable(),
   }),
 });

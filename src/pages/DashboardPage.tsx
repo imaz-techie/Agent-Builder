@@ -1,4 +1,5 @@
 import { motion, type Variants } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   Bot,
   MessageSquare,
@@ -102,6 +103,15 @@ function dotColorForAction(action: string): string {
   return "bg-muted-foreground";
 }
 
+function pctChange(values: number[]): string | null {
+  if (values.length < 2) return null;
+  const first = values[0];
+  const last = values[values.length - 1];
+  if (first === 0) return last > 0 ? "new" : null;
+  const delta = ((last - first) / first) * 100;
+  return `${delta >= 0 ? "+" : ""}${delta.toFixed(1)}%`;
+}
+
 const CustomTooltip = ({
   active,
   payload,
@@ -125,6 +135,7 @@ const CustomTooltip = ({
 };
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const { data: agents = [], isLoading: isLoadingAgents } = useAgentsQuery();
   const { data: overview } = useOverviewQuery();
   const { data: usage = [] } = useUsageQuery();
@@ -147,13 +158,18 @@ export default function DashboardPage() {
     color: AGENT_COLORS[i % AGENT_COLORS.length],
   }));
 
+  const chatTrend = pctChange(usageData.map((u) => u.chats));
+  const tokenTrend = pctChange(usageData.map((u) => u.tokens));
+  const costTrend = pctChange(usageData.map((u) => u.costUsd));
+  const latencyTrend = pctChange(usageData.map((u) => u.avgLatencyMs));
+
   const kpiCards = [
     {
       label: "Total Agents",
       value: formatNumber(agents.length),
       icon: Bot,
       trend: "up" as const,
-      change: `+${agents.filter((a) => a.status === "ACTIVE").length} active`,
+      change: `${activeAgents.length} active`,
       color: "bg-indigo-500/10 text-indigo-600",
     },
     {
@@ -161,7 +177,7 @@ export default function DashboardPage() {
       value: formatNumber(overview?.totalChats ?? 0),
       icon: MessageCircle,
       trend: "up" as const,
-      change: "+8.3%",
+      change: chatTrend ?? "No trend data",
       color: "bg-purple-500/10 text-purple-600",
     },
     {
@@ -169,7 +185,7 @@ export default function DashboardPage() {
       value: formatNumber(usage.length ? usage[usage.length - 1].chats : 0),
       icon: MessageSquare,
       trend: "up" as const,
-      change: "+15%",
+      change: "Today",
       color: "bg-violet-500/10 text-violet-600",
     },
     {
@@ -177,7 +193,7 @@ export default function DashboardPage() {
       value: formatNumber(overview?.totalTokens ?? 0),
       icon: Coins,
       trend: "up" as const,
-      change: "+18%",
+      change: tokenTrend ?? "No trend data",
       color: "bg-blue-500/10 text-blue-600",
     },
     {
@@ -185,15 +201,15 @@ export default function DashboardPage() {
       value: formatCurrency(overview?.totalCostUsd ?? 0),
       icon: DollarSign,
       trend: "up" as const,
-      change: "+5%",
+      change: costTrend ?? "No trend data",
       color: "bg-emerald-500/10 text-emerald-600",
     },
     {
       label: "Avg Response Time",
       value: `${((overview?.avgLatencyMs ?? 0) / 1000).toFixed(1)}s`,
       icon: Timer,
-      trend: "down" as const,
-      change: "-0.2s",
+      trend: latencyTrend !== null && Number(latencyTrend) < 0 ? "down" as const : "up" as const,
+      change: latencyTrend ? `${latencyTrend}` : "No trend data",
       color: "bg-amber-500/10 text-amber-600",
     },
     {
@@ -201,7 +217,7 @@ export default function DashboardPage() {
       value: formatNumber(overview?.totalKnowledgeFiles ?? 0),
       icon: FileText,
       trend: "up" as const,
-      change: "+0.3%",
+      change: "Total files",
       color: "bg-teal-500/10 text-teal-600",
     },
     {
@@ -209,7 +225,7 @@ export default function DashboardPage() {
       value: formatNumber(overview?.activeAgentsCount ?? 0),
       icon: Activity,
       trend: "up" as const,
-      change: "+2",
+      change: "Currently active",
       color: "bg-fuchsia-500/10 text-fuchsia-600",
     },
   ];
@@ -233,7 +249,7 @@ export default function DashboardPage() {
           <div className="rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground">
             Last 7 days
           </div>
-          <Button size="sm" className="gap-1.5">
+          <Button size="sm" className="gap-1.5" onClick={() => navigate("/analytics")}>
             <TrendingUp className="h-4 w-4" />
             View Report
           </Button>
@@ -284,9 +300,11 @@ export default function DashboardPage() {
                   <span className="text-xs font-semibold text-emerald-600">
                     {kpi.change}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    from last month
-                  </span>
+                  {kpi.change.includes("%") && (
+                    <span className="text-xs text-muted-foreground">
+                      over period
+                    </span>
+                  )}
                 </div>
                 <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
               </CardContent>
@@ -569,7 +587,12 @@ export default function DashboardPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Activity Timeline</CardTitle>
-                <Button variant="ghost" size="sm" className="text-xs text-primary gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-primary gap-0.5"
+                  onClick={() => navigate("/analytics")}
+                >
                   View all <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
@@ -623,7 +646,12 @@ export default function DashboardPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Recent Agents</CardTitle>
-                <Button variant="ghost" size="sm" className="text-xs text-primary gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-primary gap-0.5"
+                  onClick={() => navigate("/agents")}
+                >
                   View all <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>
@@ -724,28 +752,35 @@ export default function DashboardPage() {
             desc: "Build a new AI agent from scratch.",
             icon: Plus,
             gradient: "from-indigo-500 to-violet-500",
+            path: "/agents/new",
           },
           {
             label: "Upload Knowledge",
             desc: "Add documents to train your agents.",
             icon: Upload,
             gradient: "from-violet-500 to-purple-500",
+            path: "/knowledge",
           },
           {
             label: "Deploy Widget",
             desc: "Embed the chat widget on your site.",
             icon: Zap,
             gradient: "from-purple-500 to-fuchsia-500",
+            path: "/embed",
           },
           {
             label: "View Analytics",
             desc: "Deep-dive into usage analytics.",
             icon: BarChart3,
             gradient: "from-fuchsia-500 to-pink-500",
+            path: "/analytics",
           },
         ].map((action) => (
           <motion.div key={action.label} variants={item}>
-            <Card className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all duration-300">
+            <Card
+              className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all duration-300"
+              onClick={() => navigate(action.path)}
+            >
               <CardContent className="p-5">
                 <div className="flex items-start gap-4">
                   <div

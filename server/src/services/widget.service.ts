@@ -28,6 +28,7 @@ function sanitizePublicConfig(config: any): PublicWidgetConfigResponse {
     allowFileUpload: config.allowFileUpload,
     enableRag: config.enableRag,
     prePrompt: config.prePrompt,
+    suggestedQuestions: config.suggestedQuestions ?? [],
     agent: {
       id: config.agent.id,
       name: config.agent.name,

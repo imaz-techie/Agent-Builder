@@ -19,6 +19,18 @@ export interface KnowledgeFile {
   updatedAt: string;
 }
 
+export interface KnowledgeChunk {
+  id: string;
+  chunkIndex: number;
+  content: string;
+  tokenCount: number;
+}
+
+export interface KnowledgeFileDetails {
+  file: KnowledgeFile;
+  chunks: KnowledgeChunk[];
+}
+
 export interface UploadKnowledgeFileDto {
   file: File;
   workspaceId?: string;
