@@ -14,11 +14,11 @@ import {
   Key,
   CreditCard,
   Settings,
-  HelpCircle,
-  ChevronLeft,
-  ChevronRight,
   Search,
   Bell,
+  BellRing,
+  CheckCheck,
+  Trash2,
   Sun,
   Moon,
   LogOut,
@@ -31,9 +31,9 @@ import {
   Crown,
   PanelLeftClose,
   PanelLeft,
-  FileText,
+  ShieldCheck,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -53,10 +53,55 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { notifications } from "@/lib/mock-data";
+import { useProfileQuery } from "@/hooks/queries/useAuthQueries";
+import { useAgentsQuery } from "@/hooks/queries/useAgentQueries";
+import {
+  useWorkspacesQuery,
+  useActiveWorkspaceId,
+} from "@/hooks/queries/useWorkspaceQueries";
+import {
+  useNotificationsQuery,
+  useUnreadCountQuery,
+} from "@/hooks/queries/useNotificationQueries";
+import {
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+  useDeleteNotificationMutation,
+} from "@/hooks/mutations/useNotificationMutations";
+import { setActiveWorkspaceId } from "@/lib/workspace-id";
+import { STORAGE_KEYS } from "@/constants/api.constants";
+import CommandPalette, { openCommandPalette } from "./CommandPalette";
+import type { AppNotification } from "@/types/notification.types";
 
 const SIDEBAR_WIDTH = 260;
 const SIDEBAR_COLLAPSED_WIDTH = 68;
+
+function readStoredUser(): { name?: string; email?: string; role?: string } | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEYS.USER_DATA);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function useIsAdmin(): boolean {
+  const { data: userProfile } = useProfileQuery();
+  const stored = readStoredUser();
+  return userProfile?.role === "ADMIN" || stored?.role === "ADMIN";
+}
+
+function useSidebarBadges(): Record<string, string> {
+  const { data: agents } = useAgentsQuery({ limit: 100 });
+  return {
+    "/agents": agents && agents.length > 0 ? String(agents.length) : "",
+  };
+}
+
+const ADMIN_NAV_GROUP: NavGroup = {
+  label: "Platform",
+  items: [{ label: "Admin Console", path: "/admin", icon: ShieldCheck }],
+};
 
 interface NavItem {
   label: string;
@@ -78,7 +123,7 @@ const navGroups: NavGroup[] = [
   {
     label: "AI Tools",
     items: [
-      { label: "Agents", path: "/agents", icon: Bot, badge: "8" },
+      { label: "Agents", path: "/agents", icon: Bot },
       { label: "Knowledge Base", path: "/knowledge", icon: Database },
       { label: "Training", path: "/training", icon: GraduationCap },
       { label: "Prompt Studio", path: "/prompts", icon: FileCode2 },
@@ -94,12 +139,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Monitor",
     items: [
-      {
-        label: "Conversations",
-        path: "/conversations",
-        icon: MessageSquare,
-        badge: "12",
-      },
+      { label: "Conversations", path: "/conversations", icon: MessageSquare },
       { label: "Analytics", path: "/analytics", icon: BarChart3 },
     ],
   },
@@ -109,20 +149,20 @@ const navGroups: NavGroup[] = [
       { label: "API Keys", path: "/api-keys", icon: Key },
       { label: "Billing", path: "/billing", icon: CreditCard },
       { label: "Settings", path: "/settings", icon: Settings },
-      { label: "Help Center", path: "/help", icon: HelpCircle },
     ],
   },
 ];
 
-const flatNavItems = navGroups.flatMap((g) => g.items);
-
 function SidebarNavItem({
   item,
   collapsed,
+  badges,
 }: {
   item: NavItem;
   collapsed: boolean;
+  badges?: Record<string, string>;
 }) {
+  const badge = item.badge || badges?.[item.path];
   return (
     <Tooltip delayDuration={0}>
       <TooltipTrigger asChild>
@@ -133,7 +173,7 @@ function SidebarNavItem({
               "relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-200 group",
               collapsed && "justify-center px-0 py-2.5",
               isActive
-                ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary shadow-sm"
+                ? "bg-gradient-to-linear-r from-primary/15 to-primary/5 text-primary shadow-sm"
                 : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
             )
           }
@@ -168,12 +208,12 @@ function SidebarNavItem({
                   </motion.span>
                 )}
               </AnimatePresence>
-              {!collapsed && item.badge && (
+              {!collapsed && badge && (
                 <Badge
                   variant="secondary"
                   className="ml-auto h-5 px-1.5 text-[10px] font-semibold bg-primary/10 text-primary border-0 shrink-0"
                 >
-                  {item.badge}
+                  {badge}
                 </Badge>
               )}
             </>
@@ -183,8 +223,8 @@ function SidebarNavItem({
       {collapsed && (
         <TooltipContent side="right" sideOffset={8}>
           {item.label}
-          {item.badge && (
-            <span className="ml-1.5 text-primary">({item.badge})</span>
+          {badge && (
+            <span className="ml-1.5 text-primary">({badge})</span>
           )}
         </TooltipContent>
       )}
@@ -195,15 +235,22 @@ function SidebarNavItem({
 function SidebarNavGroup({
   group,
   collapsed,
+  badges,
 }: {
   group: NavGroup;
   collapsed: boolean;
+  badges?: Record<string, string>;
 }) {
   if (collapsed) {
     return (
       <div className="flex flex-col gap-0.5">
         {group.items.map((item) => (
-          <SidebarNavItem key={item.path} item={item} collapsed={collapsed} />
+          <SidebarNavItem
+            key={item.path}
+            item={item}
+            collapsed={collapsed}
+            badges={badges}
+          />
         ))}
       </div>
     );
@@ -216,7 +263,12 @@ function SidebarNavGroup({
       </p>
       <div className="flex flex-col gap-0.5">
         {group.items.map((item) => (
-          <SidebarNavItem key={item.path} item={item} collapsed={collapsed} />
+          <SidebarNavItem
+            key={item.path}
+            item={item}
+            collapsed={collapsed}
+            badges={badges}
+          />
         ))}
       </div>
     </div>
@@ -231,6 +283,8 @@ function MobileSidebar({
   onClose: () => void;
 }) {
   const location = useLocation();
+  const isAdmin = useIsAdmin();
+  const badges = useSidebarBadges();
 
   useEffect(() => {
     onClose();
@@ -257,7 +311,7 @@ function MobileSidebar({
           >
             <div className="flex items-center justify-between px-4 h-16 border-b border-border">
               <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25">
+                <div className="h-8 w-8 rounded-xl bg-gradient-to-linear-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25">
                   <Sparkles className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex flex-col">
@@ -280,8 +334,16 @@ function MobileSidebar({
                     key={group.label}
                     group={group}
                     collapsed={false}
+                    badges={badges}
                   />
                 ))}
+                {isAdmin && (
+                  <SidebarNavGroup
+                    group={ADMIN_NAV_GROUP}
+                    collapsed={false}
+                    badges={badges}
+                  />
+                )}
               </div>
             </ScrollArea>
           </motion.aside>
@@ -291,10 +353,169 @@ function MobileSidebar({
   );
 }
 
+function NotificationsDropdown() {
+  const { data, isLoading } = useNotificationsQuery({ limit: 20 });
+  const { data: unreadCount = 0 } = useUnreadCountQuery();
+  const markRead = useMarkNotificationReadMutation();
+  const markAllRead = useMarkAllNotificationsReadMutation();
+  const deleteNotification = useDeleteNotificationMutation();
+
+  const notifications = data?.notifications ?? [];
+
+  const handleOpen = (notification: AppNotification) => {
+    if (!notification.readAt) {
+      markRead.mutate(notification.id);
+    }
+    if (notification.link) {
+      window.open(notification.link, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-9 w-9 rounded-xl"
+        >
+          <Bell className="h-[18px] w-[18px]" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground ring-2 ring-background">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80 p-0">
+        <DropdownMenuLabel className="flex items-center justify-between px-4 py-2.5">
+          <span>Notifications</span>
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 gap-1 text-[11px] text-primary px-2"
+                onClick={() => markAllRead.mutate()}
+              >
+                <CheckCheck className="h-3.5 w-3.5" />
+                Mark all read
+              </Button>
+            )}
+            <Badge variant="secondary" className="text-[10px]">
+              {unreadCount} new
+            </Badge>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-8">
+            <BellRing className="h-5 w-5 animate-pulse text-muted-foreground/50" />
+            <span className="text-sm text-muted-foreground">Loading...</span>
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="flex flex-col items-center gap-1.5 py-6 px-3">
+            <Bell className="h-6 w-6 text-muted-foreground/40" />
+            <span className="text-sm font-medium text-muted-foreground">
+              No notifications yet
+            </span>
+            <span className="text-xs text-muted-foreground/70 text-center">
+              System alerts and agent activity will appear here.
+            </span>
+          </div>
+        ) : (
+          <ScrollArea className="max-h-96">
+            <div className="py-1">
+              {notifications.map((notification) => (
+                <DropdownMenuItem
+                  key={notification.id}
+                  className={cn(
+                    "flex items-start gap-3 px-4 py-3 cursor-pointer focus:bg-muted/60",
+                    !notification.readAt && "bg-primary/[0.04]",
+                  )}
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    handleOpen(notification);
+                  }}
+                >
+                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      {!notification.readAt && (
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      )}
+                      <span className="text-[13px] font-medium leading-tight truncate">
+                        {notification.title}
+                      </span>
+                    </div>
+                    {notification.body && (
+                      <span className="text-xs text-muted-foreground leading-snug line-clamp-2">
+                        {notification.body}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-muted-foreground/70">
+                      {formatRelativeTime(notification.createdAt)}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      deleteNotification.mutate(notification.id);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const { data: workspaces = [] } = useWorkspacesQuery();
+  const activeWorkspaceId = useActiveWorkspaceId();
+  const activeWorkspace =
+    workspaces.find((w) => w.id === activeWorkspaceId) ?? workspaces[0];
+
+  const { data: userProfile } = useProfileQuery();
+
+  const switchWorkspace = (workspaceId: string) => {
+    if (workspaceId === activeWorkspaceId) return;
+    setActiveWorkspaceId(workspaceId);
+    window.location.reload();
+  };
+
+  const getStoredUser = () => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEYS.USER_DATA);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const storedUser = getStoredUser();
+  const user = userProfile || storedUser;
+
+  const userName = user?.name || "Guest";
+  const userEmail = user?.email || "";
+  const userRole = user?.role || "Viewer";
+
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
   return (
     <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/80 backdrop-blur-xl flex items-center px-4 lg:px-5 gap-3">
@@ -307,15 +528,24 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
         <Menu className="h-5 w-5" />
       </Button>
 
-      <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/50 border border-border/50 text-muted-foreground cursor-pointer hover:bg-muted hover:border-border transition-all flex-1 max-w-xs">
+      <button
+        type="button"
+        onClick={openCommandPalette}
+        className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/50 border border-border/50 text-muted-foreground cursor-pointer hover:bg-muted hover:border-border transition-all flex-1 max-w-xs"
+      >
         <Search className="h-4 w-4 shrink-0" />
         <span className="text-sm">Search...</span>
         <kbd className="ml-auto text-[10px] font-mono bg-background/80 border border-border/60 rounded-md px-1.5 py-0.5 text-muted-foreground/70">
           Ctrl+K
         </kbd>
-      </div>
+      </button>
 
-      <Button variant="ghost" size="icon" className="md:hidden h-9 w-9">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="md:hidden h-9 w-9"
+        onClick={openCommandPalette}
+      >
         <Search className="h-5 w-5" />
       </Button>
 
@@ -327,90 +557,58 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
               size="sm"
               className="hidden sm:flex gap-2 h-9 px-2.5 rounded-xl"
             >
-              <div className="h-5 w-5 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <div className="h-5 w-5 rounded-md bg-gradient-to-linear-br from-primary to-secondary flex items-center justify-center">
                 <Sparkles className="h-3 w-3 text-white" />
               </div>
-              <span className="text-sm font-medium">AgentMax</span>
+              <span className="text-sm font-medium">
+                {activeWorkspace?.name ?? "AgentMax"}
+              </span>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
             <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="bg-primary/10 text-primary gap-2.5">
-              <div className="h-5 w-5 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Sparkles className="h-3 w-3 text-white" />
-              </div>
-              AgentMax Workspace
-            </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2.5">
-              <div className="h-5 w-5 rounded-md bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
-                T
-              </div>
-              Team Workspace
-            </DropdownMenuItem>
+            {workspaces.length === 0 ? (
+              <DropdownMenuItem disabled>
+                No workspaces available
+              </DropdownMenuItem>
+            ) : (
+              workspaces.map((workspace) => (
+                <DropdownMenuItem
+                  key={workspace.id}
+                  className={cn(
+                    "gap-2.5",
+                    workspace.id === activeWorkspaceId && "bg-primary/10 text-primary",
+                  )}
+                  onClick={() => switchWorkspace(workspace.id)}
+                >
+                  <div
+                    className={cn(
+                      "h-5 w-5 rounded-md flex items-center justify-center text-xs font-bold",
+                      workspace.id === activeWorkspaceId
+                        ? "bg-gradient-to-linear-br from-primary to-secondary text-white"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {workspace.name.charAt(0).toUpperCase()}
+                  </div>
+                  {workspace.name}
+                </DropdownMenuItem>
+              ))
+            )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-primary gap-2.5">
+            <DropdownMenuItem
+              className="text-primary gap-2.5"
+              onClick={() => navigate("/settings?tab=workspace")}
+            >
               <Zap className="h-4 w-4" />
               Create new workspace
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-9 w-9 rounded-xl"
-            >
-              <Bell className="h-[18px] w-[18px]" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1 ring-2 ring-background">
-                  {unreadCount}
-                </span>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel className="flex items-center justify-between">
-              <span>Notifications</span>
-              <Badge variant="secondary" className="text-[10px]">
-                {unreadCount} new
-              </Badge>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {notifications.slice(0, 5).map((notif) => (
-              <DropdownMenuItem
-                key={notif.id}
-                className="flex flex-col items-start gap-1.5 py-2.5 px-3 cursor-pointer"
-              >
-                <div className="flex items-center gap-2 w-full">
-                  <div
-                    className={cn(
-                      "h-2 w-2 rounded-full shrink-0",
-                      notif.type === "error" && "bg-destructive",
-                      notif.type === "warning" && "bg-warning",
-                      notif.type === "success" && "bg-success",
-                      notif.type === "info" && "bg-info",
-                      notif.read && "bg-muted-foreground/30",
-                    )}
-                  />
-                  <span className="text-sm font-medium truncate">
-                    {notif.title}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-1 pl-4">
-                  {notif.message}
-                </p>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-center justify-center text-sm text-primary font-medium">
-              View all notifications
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationsDropdown />
 
         <Button
           variant="ghost"
@@ -438,16 +636,16 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
               className="gap-2 px-1.5 h-9 rounded-xl"
             >
               <Avatar className="h-7 w-7">
-                <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-[11px] font-bold">
-                  SC
+                <AvatarFallback className="bg-gradient-to-linear-br from-primary to-secondary text-white text-[11px] font-bold">
+                  {getInitials(userName)}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden sm:flex flex-col items-start">
                 <span className="text-sm font-medium leading-tight">
-                  Sarah Chen
+                  {userName}
                 </span>
-                <span className="text-[10px] text-muted-foreground leading-tight">
-                  Admin
+                <span className="text-[10px] text-muted-foreground leading-tight capitalize">
+                  {userRole}
                 </span>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
@@ -456,29 +654,34 @@ function TopNavbar({ onMenuClick }: { onMenuClick: () => void }) {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col gap-0.5">
-                <span className="font-medium">Sarah Chen</span>
+                <span className="font-medium">{userName}</span>
                 <span className="text-xs font-normal text-muted-foreground">
-                  sarah@agentmax.ai
+                  {userEmail}
                 </span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/profile")}>
               <User className="h-4 w-4 mr-2.5" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
               <Settings className="h-4 w-4 mr-2.5" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/billing")}>
               <CreditCard className="h-4 w-4 mr-2.5" />
               Billing
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onClick={() => navigate("/login")}
+              onClick={() => {
+                Object.values(STORAGE_KEYS).forEach((key) =>
+                  sessionStorage.removeItem(key)
+                );
+                navigate("/login");
+              }}
             >
               <LogOut className="h-4 w-4 mr-2.5" />
               Logout
@@ -494,6 +697,8 @@ export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const isAdmin = useIsAdmin();
+  const badges = useSidebarBadges();
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -510,6 +715,7 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <CommandPalette />
       {!isMobile && (
         <motion.aside
           animate={{ width: sidebarWidth }}
@@ -523,7 +729,7 @@ export default function AppLayout() {
               collapsed ? "justify-center px-2" : "px-4 gap-3",
             )}
           >
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+            <div className="h-8 w-8 rounded-xl bg-gradient-to-linear-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <AnimatePresence mode="wait">
@@ -554,8 +760,16 @@ export default function AppLayout() {
                   key={group.label}
                   group={group}
                   collapsed={collapsed}
+                  badges={badges}
                 />
               ))}
+              {isAdmin && (
+                <SidebarNavGroup
+                  group={ADMIN_NAV_GROUP}
+                  collapsed={collapsed}
+                  badges={badges}
+                />
+              )}
             </div>
           </ScrollArea>
 
@@ -597,7 +811,7 @@ export default function AppLayout() {
                 >
                   <div className="relative shrink-0">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs font-bold">
+                      <AvatarFallback className="bg-gradient-to-linear-br from-primary to-secondary text-white text-xs font-bold">
                         SC
                       </AvatarFallback>
                     </Avatar>

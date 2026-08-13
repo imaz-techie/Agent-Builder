@@ -8,7 +8,6 @@ import { Sparkles, Eye, EyeOff, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -24,17 +23,13 @@ const features = [
   "Real-time analytics and monitoring",
 ];
 
-const socialProviders = [
-  { name: "Google", color: "bg-[#ea4335]", letter: "G" },
-  { name: "GitHub", color: "bg-[#333]", letter: "GH" },
-  { name: "Microsoft", color: "bg-[#00a4ef]", letter: "MS" },
-];
+import { useLoginMutation } from "@/hooks/mutations/useAuthMutations";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  const loginMutation = useLoginMutation();
 
   const {
     register,
@@ -45,17 +40,19 @@ export default function LoginPage() {
   });
 
   const onSubmit = (data: LoginFormData) => {
-    setLoading(true);
-    console.log("Login:", data);
-    setTimeout(() => {
-      setLoading(false);
-      navigate("/dashboard");
-    }, 1500);
+    loginMutation.mutate(
+      { email: data.email, password: data.password, rememberMe },
+      {
+        onSuccess: () => {
+          navigate("/dashboard");
+        },
+      }
+    );
   };
 
   return (
     <div className="min-h-screen flex bg-background">
-      <div className="hidden lg:flex lg:w-[40%] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden items-center justify-center">
+      <div className="hidden lg:flex lg:w-[40%] bg-gradient-to-linear-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 h-64 w-64 rounded-full bg-primary/20 blur-[100px]" />
           <div className="absolute bottom-20 right-20 h-48 w-48 rounded-full bg-secondary/20 blur-[80px]" />
@@ -117,33 +114,6 @@ export default function LoginPage() {
             <p className="text-muted-foreground">
               Sign in to your account to continue.
             </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {socialProviders.map((provider) => (
-              <Button
-                key={provider.name}
-                variant="outline"
-                className="gap-2 h-11"
-                onClick={() => setLoading(true)}
-              >
-                <div
-                  className={`h-5 w-5 rounded-full ${provider.color} flex items-center justify-center`}
-                >
-                  <span className="text-[10px] font-bold text-white">
-                    {provider.letter}
-                  </span>
-                </div>
-                <span className="text-sm">{provider.name}</span>
-              </Button>
-            ))}
-          </div>
-
-          <div className="relative mb-6">
-            <Separator />
-            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground">
-              or continue with email
-            </span>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -214,11 +184,10 @@ export default function LoginPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <div
                   onClick={() => setRememberMe(!rememberMe)}
-                  className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${
-                    rememberMe
-                      ? "bg-primary border-primary"
-                      : "border-input bg-background"
-                  }`}
+                  className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${rememberMe
+                    ? "bg-primary border-primary"
+                    : "border-input bg-background"
+                    }`}
                 >
                   {rememberMe && <Check className="h-3 w-3 text-white" />}
                 </div>
@@ -228,8 +197,8 @@ export default function LoginPage() {
               </label>
             </div>
 
-            <Button type="submit" className="w-full h-11" disabled={loading}>
-              {loading ? (
+            <Button type="submit" className="w-full h-11" disabled={loginMutation.isPending}>
+              {loginMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Sign In"

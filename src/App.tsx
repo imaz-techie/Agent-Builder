@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import AppLayout from "@/components/layout/AppLayout";
+import AdminLayout from "@/components/layout/AdminLayout";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +23,10 @@ const ApiKeysPage = lazy(() => import("@/pages/ApiKeysPage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const BillingPage = lazy(() => import("@/pages/BillingPage"));
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+const AdminOverviewPage = lazy(() => import("@/pages/admin/AdminOverviewPage"));
+const AdminUsersPage = lazy(() => import("@/pages/admin/AdminUsersPage"));
+const AdminWorkspacesPage = lazy(() => import("@/pages/admin/AdminWorkspacesPage"));
+const AdminLogsPage = lazy(() => import("@/pages/admin/AdminLogsPage"));
 
 function PageLoader() {
   return (
@@ -75,6 +80,24 @@ export default function App() {
             { path: "/settings", Component: SettingsPage },
             { path: "/billing", Component: BillingPage },
             { path: "/profile", Component: ProfilePage },
+          ].map(({ path, Component }) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <Component />
+                </Suspense>
+              }
+            />
+          ))}
+        </Route>
+        <Route element={<AdminLayout />}>
+          {[
+            { path: "/admin", Component: AdminOverviewPage },
+            { path: "/admin/users", Component: AdminUsersPage },
+            { path: "/admin/workspaces", Component: AdminWorkspacesPage },
+            { path: "/admin/logs", Component: AdminLogsPage },
           ].map(({ path, Component }) => (
             <Route
               key={path}

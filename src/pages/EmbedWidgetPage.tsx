@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Code2,
@@ -14,7 +14,10 @@ import {
   Bot,
   X,
   Settings2,
-  Palette,
+  Loader2,
+  Save,
+  Globe,
+  Plus,
 } from "lucide-react";
 import {
   Card,
@@ -37,8 +40,19 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { agents } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
+import { useAgentsQuery } from "@/hooks/queries/useAgentQueries";
+import { useWidgetConfigQuery } from "@/hooks/queries/useWidgetQueries";
+import {
+  useUpsertWidgetConfigMutation,
+  usePublishWidgetMutation,
+  useRegenerateWidgetTokenMutation,
+} from "@/hooks/mutations/useWidgetMutations";
+import type {
+  ChatWidgetConfig,
+  WidgetLauncherPosition,
+  WidgetTheme,
+} from "@/types/widget.types";
 
 const colorSwatches = [
   "#6366f1",
@@ -51,121 +65,265 @@ const colorSwatches = [
   "#14b8a6",
 ];
 
-const integrationSnippets: Record<string, { label: string; code: string }> = {
-  HTML: {
-    label: "HTML",
-    code: `<script src="https://agentmax.ai/widget.js" data-agent="ag_9H2KD83L"></script>`,
-  },
-  React: {
-    label: "React",
-    code: `import { AgentMaxWidget } from "@agentmax/react";
+type DeviceType = "desktop" | "tablet" | "mobile";
+
+function buildIntegrationSnippets(agentId: string, token: string) {
+  const widgetRef = token || "wgt_xxxxxxxx";
+  const widgetAttr = token ? `data-widget="${token}"` : "data-widget=\"wgt_xxxxxxxx\"";
+  return {
+    HTML: {
+      label: "HTML",
+      code: `<script src="https://agentmax.ai/widget.js" ${widgetAttr}></script>`,
+    },
+    React: {
+      label: "React",
+      code: `import { AgentMaxWidget } from "@agentmax/react";
 
 function App() {
   return (
     <AgentMaxWidget
-      agentId="ag_9H2KD83L"
-      theme="light"
-      position="bottom-right"
+      widgetToken="${widgetRef}"
+      agentId="${agentId}"
     />
   );
 }`,
-  },
-  Vue: {
-    label: "Vue",
-    code: `<template>
+    },
+    Vue: {
+      label: "Vue",
+      code: `<template>
   <AgentMaxWidget
-    agent-id="ag_9H2KD83L"
-    theme="light"
-    position="bottom-right"
+    widget-token="${widgetRef}"
+    agent-id="${agentId}"
   />
 </template>
 
 <script setup>
 import { AgentMaxWidget } from "@agentmax/vue";
 </script>`,
-  },
-  Angular: {
-    label: "Angular",
-    code: `import { AgentMaxModule } from "@agentmax/angular";
+    },
+    Angular: {
+      label: "Angular",
+      code: `import { AgentMaxModule } from "@agentmax/angular";
 
 @NgModule({
   imports: [AgentMaxModule.forRoot({
-    agentId: "ag_9H2KD83L"
+    widgetToken: "${widgetRef}",
+    agentId: "${agentId}"
   })],
 })
 export class AppModule {}`,
-  },
-  "Next.js": {
-    label: "Next.js",
-    code: `// app/layout.tsx
-  import { AgentMaxWidget } from "@agentmax/next";
+    },
+    "Next.js": {
+      label: "Next.js",
+      code: `// app/layout.tsx
+import { AgentMaxWidget } from "@agentmax/next";
 
 export default function RootLayout({ children }) {
   return (
     <html>
       <body>
         {children}
-        <AgentMaxWidget agentId="ag_9H2KD83L" />
+        <AgentMaxWidget widgetToken="${widgetRef}" agentId="${agentId}" />
       </body>
     </html>
   );
 }`,
-  },
-  Nuxt: {
-    label: "Nuxt",
-    code: `// nuxt.config.ts
+    },
+    Nuxt: {
+      label: "Nuxt",
+      code: `// nuxt.config.ts
 export default defineNuxtConfig({
   modules: ["@agentmax/nuxt"],
   agentmax: {
-    agentId: "ag_9H2KD83L"
+    widgetToken: "${widgetRef}",
+    agentId: "${agentId}"
   }
 })`,
-  },
-  WordPress: {
-    label: "WordPress",
-    code: `<!-- Add to your theme's footer.php or use a plugin -->
+    },
+    WordPress: {
+      label: "WordPress",
+      code: `<!-- Add to your theme's footer.php or use a plugin -->
 <script
   src="https://agentmax.ai/widget.js"
-  data-agent="ag_9H2KD83L"
+  ${widgetAttr}
   data-position="bottom-right">
 </script>`,
-  },
-  Shopify: {
-    label: "Shopify",
-    code: `<!-- Paste in Online Store > Themes > Edit code > theme.liquid -->
+    },
+    Shopify: {
+      label: "Shopify",
+      code: `<!-- Paste in Online Store > Themes > Edit code > theme.liquid -->
 <!-- Before the closing </body> tag -->
 <script
   src="https://agentmax.ai/widget.js"
-  data-agent="ag_9H2KD83L">
+  ${widgetAttr}>
 </script>`,
-  },
-};
+    },
+  };
+}
 
-type DeviceType = "desktop" | "tablet" | "mobile";
+const DEFAULT_CONFIG: Partial<ChatWidgetConfig> = {
+  title: "Chat with our assistant",
+  welcomeMessage: "Hi there! How can I help you today?",
+  theme: "LIGHT",
+  primaryColor: "#6366f1",
+  launcherPosition: "BOTTOM_RIGHT",
+  launcherSize: 56,
+  showAvatar: true,
+  allowFileUpload: false,
+  enableRag: true,
+};
 
 export default function EmbedWidgetPage() {
   const [copied, setCopied] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState("ag_001");
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [activeIntegration, setActiveIntegration] = useState("HTML");
   const [widgetOpen, setWidgetOpen] = useState(true);
   const [device, setDevice] = useState<DeviceType>("desktop");
-  const [primaryColor, setPrimaryColor] = useState("#6366f1");
-  const [darkMode, setDarkMode] = useState(false);
   const [cornerRadius, setCornerRadius] = useState(16);
-  const [position, setPosition] = useState("bottom-right");
-  const [welcomeMsg, setWelcomeMsg] = useState("Hi! How can I help you today?");
   const [placeholder, setPlaceholder] = useState("Type your message...");
   const [showOnline, setShowOnline] = useState(true);
   const [typingIndicator, setTypingIndicator] = useState(true);
+  const [dirty, setDirty] = useState(false);
 
-  const activeAgent = agents.find((a) => a.id === selectedAgent) ?? agents[0];
+  const [title, setTitle] = useState(DEFAULT_CONFIG.title!);
+  const [welcomeMessage, setWelcomeMessage] = useState(DEFAULT_CONFIG.welcomeMessage!);
+  const [theme, setTheme] = useState<WidgetTheme>(DEFAULT_CONFIG.theme!);
+  const [primaryColor, setPrimaryColor] = useState(DEFAULT_CONFIG.primaryColor!);
+  const [launcherPosition, setLauncherPosition] = useState<WidgetLauncherPosition>(
+    DEFAULT_CONFIG.launcherPosition!
+  );
+  const [launcherSize, setLauncherSize] = useState(DEFAULT_CONFIG.launcherSize!);
+  const [showAvatar, setShowAvatar] = useState(DEFAULT_CONFIG.showAvatar!);
+  const [allowFileUpload, setAllowFileUpload] = useState(DEFAULT_CONFIG.allowFileUpload!);
+  const [enableRag, setEnableRag] = useState(DEFAULT_CONFIG.enableRag!);
+  const [prePrompt, setPrePrompt] = useState("");
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([
+    "What products do you offer?",
+    "How do I get started?",
+    "Pricing information",
+  ]);
+  const [previewMessage, setPreviewMessage] = useState("");
+  const [previewMessages, setPreviewMessages] = useState<Array<{ from: "user" | "agent"; text: string }>>([]);
+  const [widgetId, setWidgetId] = useState<string | null>(null);
+  const [isPublished, setIsPublished] = useState(false);
+  const [widgetToken, setWidgetToken] = useState("");
 
-  const embedCode = `<script src="https://agentmax.ai/widget.js" data-agent="ag_9H2KD83L"></script>`;
+  const { data: allAgents = [], isLoading: agentsLoading } = useAgentsQuery();
+  const activeAgents = allAgents.filter((a) => a.status === "ACTIVE");
+  const { data: config, isFetching: configLoading } = useWidgetConfigQuery(selectedAgentId);
+
+  const upsertConfig = useUpsertWidgetConfigMutation(selectedAgentId);
+  const publishWidget = usePublishWidgetMutation(selectedAgentId);
+  const regenerateToken = useRegenerateWidgetTokenMutation(selectedAgentId);
+
+  useEffect(() => {
+    if (!selectedAgentId && activeAgents.length > 0) {
+      setSelectedAgentId(activeAgents[0].id);
+    }
+  }, [activeAgents, selectedAgentId]);
+
+  useEffect(() => {
+    if (config) {
+      setTitle(config.title);
+      setWelcomeMessage(config.welcomeMessage);
+      setTheme(config.theme);
+      setPrimaryColor(config.primaryColor);
+      setLauncherPosition(config.launcherPosition);
+      setLauncherSize(config.launcherSize);
+      setShowAvatar(config.showAvatar);
+      setAllowFileUpload(config.allowFileUpload);
+      setEnableRag(config.enableRag);
+      setPrePrompt(config.prePrompt ?? "");
+      setSuggestedQuestions(
+        config.suggestedQuestions?.length
+          ? config.suggestedQuestions.slice(0, 10)
+          : ["What products do you offer?", "How do I get started?", "Pricing information"]
+      );
+      setWidgetId(config.id);
+      setIsPublished(config.isPublished);
+      setWidgetToken(config.widgetToken);
+      setDirty(false);
+    }
+  }, [config]);
+
+  useEffect(() => {
+    if (selectedAgentId) {
+      setWidgetId(null);
+      setIsPublished(false);
+      setWidgetToken("");
+      setTitle(DEFAULT_CONFIG.title!);
+      setWelcomeMessage(DEFAULT_CONFIG.welcomeMessage!);
+      setTheme(DEFAULT_CONFIG.theme!);
+      setPrimaryColor(DEFAULT_CONFIG.primaryColor!);
+      setLauncherPosition(DEFAULT_CONFIG.launcherPosition!);
+      setLauncherSize(DEFAULT_CONFIG.launcherSize!);
+      setShowAvatar(DEFAULT_CONFIG.showAvatar!);
+      setAllowFileUpload(DEFAULT_CONFIG.allowFileUpload!);
+      setEnableRag(DEFAULT_CONFIG.enableRag!);
+      setPrePrompt("");
+      setSuggestedQuestions([
+        "What products do you offer?",
+        "How do I get started?",
+        "Pricing information",
+      ]);
+      setPreviewMessages([]);
+      setDirty(false);
+    }
+  }, [selectedAgentId]);
+
+  const activeAgent = activeAgents.find((a) => a.id === selectedAgentId) ?? activeAgents[0];
+
+  const embedCode = `<script src="https://agentmax.ai/widget.js" data-widget="${
+    widgetToken || "wgt_xxxxxxxx"
+  }"></script>`;
+
+  const integrationSnippets = buildIntegrationSnippets(selectedAgentId ?? "", widgetToken);
+  const activeSnippet =
+    integrationSnippets[activeIntegration as keyof typeof integrationSnippets];
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSave = () => {
+    if (!selectedAgentId) return;
+    upsertConfig.mutate(
+      {
+        title,
+        welcomeMessage,
+        theme,
+        primaryColor,
+        launcherPosition,
+        launcherSize,
+        showAvatar,
+        allowFileUpload,
+        enableRag,
+        prePrompt: prePrompt || null,
+        suggestedQuestions: suggestedQuestions.filter((q) => q.trim().length > 0),
+      },
+      {
+        onSuccess: (savedConfig) => {
+          setWidgetId(savedConfig.id);
+          setWidgetToken(savedConfig.widgetToken);
+          setIsPublished(savedConfig.isPublished);
+          setDirty(false);
+        },
+      }
+    );
+  };
+
+  const handlePublish = () => {
+    if (!widgetId) return;
+    publishWidget.mutate(widgetId);
+  };
+
+  const handleRegenerateToken = () => {
+    if (!widgetId) return;
+    regenerateToken.mutate(widgetId, {
+      onSuccess: (config) => setWidgetToken(config.widgetToken),
+    });
   };
 
   const deviceWidths: Record<DeviceType, string> = {
@@ -174,11 +332,28 @@ export default function EmbedWidgetPage() {
     mobile: "375px",
   };
 
-  const suggestedQuestions = [
-    "What products do you offer?",
-    "How do I get started?",
-    "Pricing information",
-  ];
+  const handleSendPreview = () => {
+    const text = previewMessage.trim();
+    if (!text) return;
+    setPreviewMessages((prev) => [...prev, { from: "user", text }]);
+    setPreviewMessage("");
+    setTimeout(() => {
+      setPreviewMessages((prev) => [
+        ...prev,
+        {
+          from: "agent",
+          text: `Thanks for your message. The ${activeAgent?.name ?? "assistant"} will answer from your configured knowledge base.`,
+        },
+      ]);
+    }, 700);
+  };
+
+  const updateQuestion = (index: number, value: string) => {
+    setSuggestedQuestions((prev) =>
+      prev.map((q, i) => (i === index ? value : q))
+    );
+    setDirty(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -194,18 +369,25 @@ export default function EmbedWidgetPage() {
           <div className="flex items-center gap-4 flex-wrap">
             <div className="space-y-1 flex-1 min-w-[200px]">
               <Label className="text-xs">Select Agent</Label>
-              <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+              <Select
+                value={selectedAgentId ?? ""}
+                onValueChange={setSelectedAgentId}
+              >
                 <SelectTrigger className="max-w-sm">
-                  <SelectValue />
+                  <SelectValue placeholder="Select an agent" />
                 </SelectTrigger>
                 <SelectContent>
-                  {agents
-                    .filter((a) => a.status === "active")
-                    .map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name}
-                      </SelectItem>
-                    ))}
+                  {agentsLoading && (
+                    <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Loading agents...
+                    </div>
+                  )}
+                  {activeAgents.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -213,13 +395,13 @@ export default function EmbedWidgetPage() {
               <Label className="text-xs">Agent ID</Label>
               <div className="flex items-center gap-2">
                 <code className="px-3 py-2 rounded-lg bg-muted text-sm font-mono">
-                  ag_9H2KD83L
+                  {selectedAgentId ?? "-"}
                 </code>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9"
-                  onClick={() => handleCopy("ag_9H2KD83L")}
+                  onClick={() => handleCopy(selectedAgentId ?? "")}
                 >
                   {copied ? (
                     <Check className="h-4 w-4 text-success" />
@@ -227,6 +409,23 @@ export default function EmbedWidgetPage() {
                     <Copy className="h-4 w-4" />
                   )}
                 </Button>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Status</Label>
+              <div className="pt-1">
+                {isPublished ? (
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] gap-1 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+                  >
+                    <Globe className="h-3 w-3" /> Published
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] gap-1">
+                    Not published
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -241,6 +440,11 @@ export default function EmbedWidgetPage() {
                 <Code2 className="h-4 w-4" />
                 Embed Code
               </CardTitle>
+              <CardDescription>
+                {widgetToken
+                  ? "Copy this snippet into your website to embed the widget."
+                  : "Save the widget configuration to generate an embed token."}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative">
@@ -260,10 +464,26 @@ export default function EmbedWidgetPage() {
                       <Copy className="h-3.5 w-3.5" />
                     )}
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <RefreshCw className="h-3.5 w-3.5" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleRegenerateToken}
+                    disabled={!widgetId || regenerateToken.isPending}
+                  >
+                    <RefreshCw
+                      className={cn(
+                        "h-3.5 w-3.5",
+                        regenerateToken.isPending && "animate-spin"
+                      )}
+                    />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleCopy(activeSnippet.code)}
+                  >
                     <Download className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -289,7 +509,7 @@ export default function EmbedWidgetPage() {
               </div>
 
               <pre className="rounded-xl bg-muted p-4 text-xs font-mono overflow-x-auto whitespace-pre-wrap border border-border">
-                {integrationSnippets[activeIntegration].code}
+                {activeSnippet.code}
               </pre>
             </CardContent>
           </Card>
@@ -369,7 +589,7 @@ export default function EmbedWidgetPage() {
                         initial={{ opacity: 0, y: 20, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         className={`absolute bottom-20 ${
-                          position === "bottom-left" ? "left-4" : "right-4"
+                          launcherPosition === "BOTTOM_LEFT" ? "left-4" : "right-4"
                         } w-[300px] rounded-2xl border border-border bg-card shadow-2xl overflow-hidden`}
                         style={{ borderRadius: `${cornerRadius}px` }}
                       >
@@ -382,7 +602,7 @@ export default function EmbedWidgetPage() {
                           </div>
                           <div className="flex-1">
                             <p className="text-sm font-medium text-white">
-                              {activeAgent.name}
+                              {activeAgent?.name ?? title}
                             </p>
                             {showOnline && (
                               <div className="flex items-center gap-1">
@@ -404,32 +624,86 @@ export default function EmbedWidgetPage() {
                         <ScrollArea className="h-[180px]">
                           <div className="p-4 space-y-3">
                             <div className="flex items-start gap-2">
-                              <div
-                                className="h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                                style={{ background: `${primaryColor}20` }}
-                              >
-                                <Bot
-                                  className="h-3 w-3"
-                                  style={{ color: primaryColor }}
-                                />
-                              </div>
+                              {showAvatar && (
+                                <div
+                                  className="h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                                  style={{ background: `${primaryColor}20` }}
+                                >
+                                  <Bot
+                                    className="h-3 w-3"
+                                    style={{ color: primaryColor }}
+                                  />
+                                </div>
+                              )}
                               <div className="bg-muted rounded-xl rounded-tl-sm px-3 py-2">
-                                <p className="text-xs">{welcomeMsg}</p>
+                                <p className="text-xs">{welcomeMessage}</p>
                               </div>
                             </div>
+
+                            {previewMessages.map((msg, i) => (
+                              <div
+                                key={i}
+                                className={`flex items-start gap-2 ${
+                                  msg.from === "user" ? "justify-end" : ""
+                                }`}
+                              >
+                                {msg.from === "agent" && showAvatar && (
+                                  <div
+                                    className="h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                                    style={{ background: `${primaryColor}20` }}
+                                  >
+                                    <Bot
+                                      className="h-3 w-3"
+                                      style={{ color: primaryColor }}
+                                    />
+                                  </div>
+                                )}
+                                <div
+                                  className={`px-3 py-2 max-w-[220px] ${
+                                    msg.from === "user"
+                                      ? "rounded-xl rounded-br-sm text-white"
+                                      : "bg-muted rounded-xl rounded-tl-sm"
+                                  }`}
+                                  style={
+                                    msg.from === "user"
+                                      ? { background: primaryColor }
+                                      : undefined
+                                  }
+                                >
+                                  <p className="text-xs break-words">{msg.text}</p>
+                                </div>
+                              </div>
+                            ))}
 
                             <div className="flex flex-wrap gap-1.5 pl-8">
-                              {suggestedQuestions.map((q, i) => (
-                                <button
-                                  key={i}
-                                  className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-border hover:bg-muted transition-colors"
-                                >
-                                  {q}
-                                </button>
-                              ))}
+                              {suggestedQuestions
+                                .filter((q) => q.trim())
+                                .map((q, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => {
+                                      setPreviewMessages((prev) => [
+                                        ...prev,
+                                        { from: "user", text: q },
+                                      ]);
+                                      setTimeout(() => {
+                                        setPreviewMessages((prev) => [
+                                          ...prev,
+                                          {
+                                            from: "agent",
+                                            text: `Here is what the ${activeAgent?.name ?? "assistant"} knows about that.`,
+                                          },
+                                        ]);
+                                      }, 700);
+                                    }}
+                                    className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-border hover:bg-muted transition-colors"
+                                  >
+                                    {q}
+                                  </button>
+                                ))}
                             </div>
 
-                            {typingIndicator && (
+                            {typingIndicator && previewMessages.length > 0 && (
                               <div className="flex items-start gap-2">
                                 <div
                                   className="h-6 w-6 rounded-full flex items-center justify-center shrink-0"
@@ -478,13 +752,18 @@ export default function EmbedWidgetPage() {
                           <div className="flex items-center gap-2">
                             <Input
                               placeholder={placeholder}
+                              value={previewMessage}
+                              onChange={(e) => setPreviewMessage(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSendPreview();
+                              }}
                               className="h-9 text-xs flex-1"
-                              readOnly
                             />
                             <Button
                               size="icon"
                               className="h-9 w-9 shrink-0"
                               style={{ background: primaryColor }}
+                              onClick={handleSendPreview}
                             >
                               <Send className="h-3.5 w-3.5 text-white" />
                             </Button>
@@ -500,7 +779,7 @@ export default function EmbedWidgetPage() {
                         whileHover={{ scale: 1.1 }}
                         onClick={() => setWidgetOpen(true)}
                         className={`absolute bottom-4 ${
-                          position === "bottom-left" ? "left-4" : "right-4"
+                          launcherPosition === "BOTTOM_LEFT" ? "left-4" : "right-4"
                         } h-14 w-14 rounded-full shadow-xl flex items-center justify-center text-white`}
                         style={{ background: primaryColor }}
                       >
@@ -524,6 +803,18 @@ export default function EmbedWidgetPage() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
+                <Label className="text-xs">Widget Title</Label>
+                <Input
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    setDirty(true);
+                  }}
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-xs">Primary Color</Label>
                 <div className="flex items-center gap-2">
                   <div
@@ -532,7 +823,10 @@ export default function EmbedWidgetPage() {
                   />
                   <Input
                     value={primaryColor}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    onChange={(e) => {
+                      setPrimaryColor(e.target.value);
+                      setDirty(true);
+                    }}
                     className="font-mono text-xs h-8"
                   />
                 </div>
@@ -540,7 +834,10 @@ export default function EmbedWidgetPage() {
                   {colorSwatches.map((c) => (
                     <button
                       key={c}
-                      onClick={() => setPrimaryColor(c)}
+                      onClick={() => {
+                        setPrimaryColor(c);
+                        setDirty(true);
+                      }}
                       className={`h-6 w-6 rounded-md border-2 transition-all ${
                         primaryColor === c
                           ? "border-foreground scale-110"
@@ -554,14 +851,40 @@ export default function EmbedWidgetPage() {
 
               <Separator />
 
+              <div className="space-y-2">
+                <Label className="text-xs">Theme</Label>
+                <Select
+                  value={theme}
+                  onValueChange={(value) => {
+                    setTheme(value as WidgetTheme);
+                    setDirty(true);
+                  }}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LIGHT">Light</SelectItem>
+                    <SelectItem value="DARK">Dark</SelectItem>
+                    <SelectItem value="SYSTEM">System</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-xs">Dark Mode</Label>
+                  <Label className="text-xs">Show Avatar</Label>
                   <p className="text-[11px] text-muted-foreground">
-                    Toggle dark theme
+                    Display agent avatar in chat
                   </p>
                 </div>
-                <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+                <Switch
+                  checked={showAvatar}
+                  onCheckedChange={(v) => {
+                    setShowAvatar(v);
+                    setDirty(true);
+                  }}
+                />
               </div>
 
               <div className="space-y-2">
@@ -583,15 +906,41 @@ export default function EmbedWidgetPage() {
 
               <div className="space-y-2">
                 <Label className="text-xs">Position</Label>
-                <Select value={position} onValueChange={setPosition}>
+                <Select
+                  value={launcherPosition}
+                  onValueChange={(value) => {
+                    setLauncherPosition(value as WidgetLauncherPosition);
+                    setDirty(true);
+                  }}
+                >
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                    <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                    <SelectItem value="BOTTOM_RIGHT">Bottom Right</SelectItem>
+                    <SelectItem value="BOTTOM_LEFT">Bottom Left</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Launcher Size</Label>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {launcherSize}px
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={32}
+                  max={96}
+                  value={launcherSize}
+                  onChange={(e) => {
+                    setLauncherSize(Number(e.target.value));
+                    setDirty(true);
+                  }}
+                  className="w-full h-1.5 rounded-full bg-muted appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                />
               </div>
 
               <Separator />
@@ -599,8 +948,11 @@ export default function EmbedWidgetPage() {
               <div className="space-y-2">
                 <Label className="text-xs">Welcome Message</Label>
                 <Input
-                  value={welcomeMsg}
-                  onChange={(e) => setWelcomeMsg(e.target.value)}
+                  value={welcomeMessage}
+                  onChange={(e) => {
+                    setWelcomeMessage(e.target.value);
+                    setDirty(true);
+                  }}
                   className="text-xs h-9"
                 />
               </div>
@@ -615,13 +967,93 @@ export default function EmbedWidgetPage() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-xs">Pre-Prompt</Label>
+                <Input
+                  value={prePrompt}
+                  onChange={(e) => {
+                    setPrePrompt(e.target.value);
+                    setDirty(true);
+                  }}
+                  placeholder="System instructions prepended to every message..."
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label className="text-xs">Suggested Questions</Label>
-                {suggestedQuestions.map((q, i) => (
-                  <Input key={i} defaultValue={q} className="text-xs h-8" />
-                ))}
+                <div className="space-y-1.5">
+                  {suggestedQuestions.map((q, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <Input
+                        value={q}
+                        onChange={(e) => updateQuestion(i, e.target.value)}
+                        placeholder={`Question ${i + 1}`}
+                        className="text-xs h-8"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          setSuggestedQuestions((prev) =>
+                            prev.filter((_, idx) => idx !== i)
+                          );
+                          setDirty(true);
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                {suggestedQuestions.length < 10 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs w-full"
+                    onClick={() => {
+                      setSuggestedQuestions((prev) => [...prev, ""]);
+                      setDirty(true);
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add question
+                  </Button>
+                )}
               </div>
 
               <Separator />
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-xs">File Upload</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Allow users to attach files
+                  </p>
+                </div>
+                <Switch
+                  checked={allowFileUpload}
+                  onCheckedChange={(v) => {
+                    setAllowFileUpload(v);
+                    setDirty(true);
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-xs">RAG Retrieval</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Answer from the knowledge base
+                  </p>
+                </div>
+                <Switch
+                  checked={enableRag}
+                  onCheckedChange={(v) => {
+                    setEnableRag(v);
+                    setDirty(true);
+                  }}
+                />
+              </div>
 
               <div className="flex items-center justify-between">
                 <div>
@@ -645,6 +1077,43 @@ export default function EmbedWidgetPage() {
                   onCheckedChange={setTypingIndicator}
                 />
               </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Button
+                  className="w-full gap-2"
+                  onClick={handleSave}
+                  disabled={!selectedAgentId || upsertConfig.isPending}
+                >
+                  {upsertConfig.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {dirty ? "Save Changes" : widgetId ? "Save Changes" : "Save Configuration"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={handlePublish}
+                  disabled={!widgetId || publishWidget.isPending || isPublished}
+                >
+                  {publishWidget.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Globe className="h-4 w-4" />
+                  )}
+                  {isPublished ? "Published" : "Publish Widget"}
+                </Button>
+              </div>
+
+              {configLoading && (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Loading saved configuration...
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

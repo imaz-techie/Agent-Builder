@@ -10,7 +10,6 @@ import {
   Check,
   Bot,
   Sparkles,
-  Shield,
   Rocket,
   Globe,
   FileText,
@@ -23,16 +22,14 @@ import {
   FileSpreadsheet,
   BrainCircuit,
   MessageSquare,
-  Lock,
   Zap,
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -57,11 +54,6 @@ const formSchema = z.object({
   responseLength: z.string().min(1, "Response length is required"),
   languages: z.array(z.string()).min(1, "Select at least one language"),
   capabilities: z.array(z.string()).min(1, "Select at least one capability"),
-  allowedDomains: z.string(),
-  rateLimit: z.string(),
-  authEnabled: z.boolean(),
-  workspaceAccess: z.enum(["public", "private"]),
-  encryption: z.boolean(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -74,14 +66,7 @@ const steps = [
 ];
 
 const categories = ["Support", "Sales", "Marketing", "Technical", "General"];
-const models = [
-  "GPT-4o",
-  "GPT-4o Mini",
-  "Claude 3.5 Sonnet",
-  "Claude 3 Haiku",
-  "Gemini 1.5 Pro",
-  "Llama 3.1 70B",
-];
+const models = MODEL_OPTIONS;
 const tones = ["Professional", "Friendly", "Casual", "Formal", "Empathetic"];
 const writingStyles = ["Concise", "Detailed", "Technical", "Simple"];
 const responseLengths = ["Short", "Medium", "Long"];
@@ -96,13 +81,6 @@ const languageOptions = [
   "Arabic",
   "Hindi",
   "Korean",
-];
-const rateLimits = [
-  "10 requests/min",
-  "30 requests/min",
-  "60 requests/min",
-  "120 requests/min",
-  "Unlimited",
 ];
 
 const capabilities = [
@@ -198,11 +176,15 @@ const slideVariants = {
   exit: (dir: number) => ({ x: dir > 0 ? -80 : 80, opacity: 0 }),
 };
 
+import { useCreateAgentMutation } from "@/hooks/mutations/useAgentMutations";
+import { MODEL_OPTIONS } from "@/types/agent.types";
+import type { LlmModel } from "@/types/agent.types";
+
 export default function CreateAgentPage() {
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
-  const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
+  const createAgentMutation = useCreateAgentMutation();
 
   const {
     register,
@@ -228,11 +210,6 @@ export default function CreateAgentPage() {
       responseLength: "",
       languages: ["English"],
       capabilities: ["answer_questions"],
-      allowedDomains: "",
-      rateLimit: "60 requests/min",
-      authEnabled: true,
-      workspaceAccess: "private",
-      encryption: true,
     },
   });
 
@@ -260,12 +237,46 @@ export default function CreateAgentPage() {
     }
   }
 
-  function onSubmit(_data: FormData) {
-    setCreating(true);
-    setTimeout(() => {
-      setCreating(false);
-      setCreated(true);
-    }, 2000);
+  function buildSystemPrompt(data: FormData): string {
+    const parts = [
+      `You are ${data.name}, an AI assistant for ${data.category || "general purposes"}.`,
+      data.description,
+      `Tone: ${data.tone}.`,
+      `Writing style: ${data.writingStyle}.`,
+      `Formality level: ${data.formality}%.`,
+      `Creativity level: ${data.creativity}%.`,
+      `Preferred response length: ${data.responseLength}.`,
+      `Supported languages: ${data.languages.join(", ")}.`,
+      `Capabilities: ${data.capabilities
+        .map((c) => capabilities.find((cap) => cap.id === c)?.title ?? c)
+        .join(", ")}.`,
+    ];
+    return parts.join("\n");
+  }
+
+  function onSubmit(data: FormData) {
+    createAgentMutation.mutate(
+      {
+        name: data.name,
+        description: data.description,
+        category: data.category || "Customer Support",
+        model: (data.model || "GPT_4O") as LlmModel,
+        temperature: data.temperature,
+        maxTokens: data.maxTokens,
+        systemPrompt: buildSystemPrompt(data),
+        tags: data.tags
+          ? data.tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+          : undefined,
+      },
+      {
+        onSuccess: () => {
+          setCreated(true);
+        },
+      }
+    );
   }
 
   function toggleLanguage(lang: string) {
@@ -479,8 +490,8 @@ export default function CreateAgentPage() {
                           </SelectTrigger>
                           <SelectContent>
                             {models.map((m) => (
-                              <SelectItem key={m} value={m}>
-                                {m}
+                              <SelectItem key={m.value} value={m.value}>
+                                {m.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -845,161 +856,94 @@ export default function CreateAgentPage() {
                   </div>
                 )}
 
-                {/* Step 4: Security & Deploy */}
+                {/* Step 4: Review */}
                 {step === 4 && (
                   <div className="space-y-5">
                     <div>
-                      <h2 className="text-lg font-semibold">
-                        Security & Deploy
-                      </h2>
+                      <h2 className="text-lg font-semibold">Review &amp; Create</h2>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Configure security settings and deployment options.
+                        Confirm the agent configuration. Your personality and
+                        capability selections are compiled into the agent's
+                        system prompt.
                       </p>
                     </div>
 
-                    <div className="space-y-5">
-                      <div className="space-y-2">
-                        <Label htmlFor="domains">Allowed Domains</Label>
-                        <Input
-                          id="domains"
-                          placeholder="Comma-separated domains, e.g., example.com, app.example.com"
-                          {...register("allowedDomains")}
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                          Restrict where this agent can be embedded. Leave empty
-                          to allow all domains.
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Name</p>
+                        <p className="text-sm font-medium">{formValues.name}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Category</p>
+                        <p className="text-sm font-medium">{formValues.category}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Model</p>
+                        <p className="text-sm font-medium">
+                          {MODEL_OPTIONS.find((m) => m.value === formValues.model)?.label ?? formValues.model}
                         </p>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label>Rate Limit</Label>
-                        <Select
-                          value={formValues.rateLimit}
-                          onValueChange={(v) =>
-                            setValue("rateLimit", v)
-                          }
-                        >
-                          <SelectTrigger className="w-full sm:w-[220px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {rateLimits.map((rl) => (
-                              <SelectItem key={rl} value={rl}>
-                                {rl}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Temperature</p>
+                        <p className="text-sm font-medium">{formValues.temperature.toFixed(1)}</p>
                       </div>
-
-                      <div className="flex items-center justify-between p-4 border border-border rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
-                            <Lock className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">
-                              Authentication Required
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Require users to authenticate before chatting
-                            </p>
-                          </div>
-                        </div>
-                        <Switch
-                          checked={formValues.authEnabled}
-                          onCheckedChange={(v) =>
-                            setValue("authEnabled", v)
-                          }
-                        />
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Max Tokens</p>
+                        <p className="text-sm font-medium">{formValues.maxTokens.toLocaleString()}</p>
                       </div>
-
-                      <div className="space-y-3">
-                        <Label>Workspace Access</Label>
-                        <div className="flex gap-3">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setValue("workspaceAccess", "public")
-                            }
-                            className={`flex-1 p-4 rounded-xl border text-left transition-all ${
-                              formValues.workspaceAccess === "public"
-                                ? "bg-primary/5 border-primary ring-1 ring-primary/20"
-                                : "border-border hover:bg-muted/50"
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`h-9 w-9 rounded-lg flex items-center justify-center ${
-                                  formValues.workspaceAccess === "public"
-                                    ? "bg-primary/10 text-primary"
-                                    : "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                <Globe className="h-4 w-4" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium">Public</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Visible to all workspace members
-                                </p>
-                              </div>
-                            </div>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setValue("workspaceAccess", "private")
-                            }
-                            className={`flex-1 p-4 rounded-xl border text-left transition-all ${
-                              formValues.workspaceAccess === "private"
-                                ? "bg-primary/5 border-primary ring-1 ring-primary/20"
-                                : "border-border hover:bg-muted/50"
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`h-9 w-9 rounded-lg flex items-center justify-center ${
-                                  formValues.workspaceAccess === "private"
-                                    ? "bg-primary/10 text-primary"
-                                    : "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                <Shield className="h-4 w-4" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium">Private</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Only visible to you and admins
-                                </p>
-                              </div>
-                            </div>
-                          </button>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Tags</p>
+                        <p className="text-sm font-medium">
+                          {formValues.tags || "—"}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Tone</p>
+                        <p className="text-sm font-medium">{formValues.tone}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Writing Style</p>
+                        <p className="text-sm font-medium">{formValues.writingStyle}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Formality / Creativity</p>
+                        <p className="text-sm font-medium">
+                          {formValues.formality}% / {formValues.creativity}%
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Response Length</p>
+                        <p className="text-sm font-medium">{formValues.responseLength}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Languages</p>
+                        <div className="flex flex-wrap gap-1">
+                          {formValues.languages.map((l) => (
+                            <Badge key={l} variant="secondary" className="text-[10px]">
+                              {l}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
-
-                      <div className="flex items-center justify-between p-4 border border-border rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
-                            <Lock className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">
-                              End-to-End Encryption
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Encrypt all conversation data in transit and at
-                              rest
-                            </p>
-                          </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Capabilities</p>
+                        <div className="flex flex-wrap gap-1">
+                          {formValues.capabilities.map((c) => (
+                            <Badge key={c} variant="secondary" className="text-[10px]">
+                              {capabilities.find((cap) => cap.id === c)?.title ?? c}
+                            </Badge>
+                          ))}
                         </div>
-                        <Switch
-                          checked={formValues.encryption}
-                          onCheckedChange={(v) =>
-                            setValue("encryption", v)
-                          }
-                        />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        Generated system prompt
+                      </p>
+                      <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/50 border border-border rounded-xl p-4 text-muted-foreground leading-relaxed">
+                        {buildSystemPrompt(formValues)}
+                      </pre>
                     </div>
                   </div>
                 )}
@@ -1030,8 +974,8 @@ export default function CreateAgentPage() {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button type="submit" disabled={creating}>
-                {creating ? (
+              <Button type="submit" disabled={createAgentMutation.isPending}>
+                {createAgentMutation.isPending ? (
                   <>
                     <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
                     Creating...

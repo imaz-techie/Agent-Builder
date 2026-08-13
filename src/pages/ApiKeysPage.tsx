@@ -4,14 +4,11 @@ import {
   Key,
   Plus,
   Copy,
-  RefreshCw,
   Trash2,
   MoreVertical,
   Shield,
   Info,
   Send,
-  Zap,
-  Activity,
   Clock,
   AlertTriangle,
 } from "lucide-react";
@@ -46,36 +43,73 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Progress } from "@/components/ui/progress";
-import { apiKeys } from "@/lib/mock-data";
+
 import { formatDate, formatRelativeTime } from "@/lib/utils";
+import { useApiKeysQuery } from "@/hooks/queries/useApiKeyQueries";
+import {
+  useCreateApiKeyMutation,
+  useRevokeApiKeyMutation,
+} from "@/hooks/mutations/useApiKeyMutations";
+import type { ApiKeyPermission, ApiKeyWithSecret } from "@/types/apiKey.types";
+import { toast } from "sonner";
 
 const permissionColors: Record<string, string> = {
-  read: "bg-info/10 text-info",
-  write: "bg-warning/10 text-warning",
-  admin: "bg-destructive/10 text-destructive",
+  READ: "bg-info/10 text-info",
+  WRITE: "bg-warning/10 text-warning",
+  ADMIN: "bg-destructive/10 text-destructive",
 };
 
 export default function ApiKeysPage() {
+  const { data: apiKeys = [] } = useApiKeysQuery();
+  const createApiKeyMutation = useCreateApiKeyMutation();
+  const revokeApiKeyMutation = useRevokeApiKeyMutation();
+
   const [showNewKey, setShowNewKey] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
+  const [newKeyPermissions, setNewKeyPermissions] = useState<ApiKeyPermission[]>(["READ"]);
+  const [createdKey, setCreatedKey] = useState<ApiKeyWithSecret | null>(null);
   const [showCopied, setShowCopied] = useState<string | null>(null);
-  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const [showRevokeDialog, setShowRevokeDialog] = useState(false);
-  const [_selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
+  const [selectedKeyId, setSelectedKeyId] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState(
     "https://api.agentmax.ai/webhooks/v1/events",
   );
-  const [testingWebhook, setTestingWebhook] = useState(false);
 
-  const handleCopyKey = (keyId: string) => {
-    setShowCopied(keyId);
-    setTimeout(() => setShowCopied(null), 2000);
+  const handleCopyKey = async (apiKey: { id: string; keyPrefix: string }) => {
+    try {
+      await navigator.clipboard.writeText(apiKey.keyPrefix);
+      setShowCopied(apiKey.id);
+      setTimeout(() => setShowCopied(null), 2000);
+    } catch {
+      toast.error("Failed to copy key");
+    }
   };
 
-  const handleRegenerate = (keyId: string) => {
-    setSelectedKeyId(keyId);
-    setShowRegenerateDialog(true);
+  const handleCopySecret = async (secret: string) => {
+    try {
+      await navigator.clipboard.writeText(secret);
+      toast.success("Secret key copied");
+    } catch {
+      toast.error("Failed to copy key");
+    }
+  };
+
+  const handleGenerateKey = () => {
+    if (!newKeyName.trim()) {
+      toast.error("Please enter a key name");
+      return;
+    }
+    createApiKeyMutation.mutate(
+      { name: newKeyName.trim(), permissions: newKeyPermissions },
+      {
+        onSuccess: (key) => {
+          setCreatedKey(key);
+          setShowNewKey(false);
+          setNewKeyName("");
+          setNewKeyPermissions(["READ"]);
+        },
+      }
+    );
   };
 
   const handleRevoke = (keyId: string) => {
@@ -83,15 +117,19 @@ export default function ApiKeysPage() {
     setShowRevokeDialog(true);
   };
 
-  const handleTestWebhook = () => {
-    setTestingWebhook(true);
-    setTimeout(() => setTestingWebhook(false), 2000);
+  const confirmRevoke = () => {
+    if (!selectedKeyId) return;
+    revokeApiKeyMutation.mutate(selectedKeyId, {
+      onSuccess: () => {
+        setShowRevokeDialog(false);
+        setSelectedKeyId(null);
+      },
+    });
   };
 
-  const rateLimitUsed = 847;
-  const rateLimitMax = 1000;
-  const requestsToday = 12847;
-  const remainingQuota = 87153;
+  const handleTestWebhook = () => {
+    toast.info("Webhook testing is not available yet");
+  };
 
   return (
     <TooltipProvider>
@@ -191,12 +229,12 @@ export default function ApiKeysPage() {
                         <td className="py-4 pr-4">
                           <div className="flex items-center gap-2">
                             <code className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                              {apiKey.keyPreview}
+                              {apiKey.keyPrefix}...
                             </code>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
-                                  onClick={() => handleCopyKey(apiKey.id)}
+                                  onClick={() => handleCopyKey(apiKey)}
                                   className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                                 >
                                   {showCopied === apiKey.id ? (
@@ -229,7 +267,7 @@ export default function ApiKeysPage() {
                         <td className="py-4 pr-4">
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />
-                            {formatRelativeTime(apiKey.lastUsed)}
+                            {apiKey.lastUsedAt ? formatRelativeTime(apiKey.lastUsedAt) : "Never"}
                           </div>
                         </td>
                         <td className="py-4 pr-4">
@@ -251,15 +289,9 @@ export default function ApiKeysPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 className="gap-2"
-                                onClick={() => handleCopyKey(apiKey.id)}
+                                onClick={() => handleCopyKey(apiKey)}
                               >
                                 <Copy className="h-3.5 w-3.5" /> Copy Key
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2"
-                                onClick={() => handleRegenerate(apiKey.id)}
-                              >
-                                <RefreshCw className="h-3.5 w-3.5" /> Regenerate
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -290,22 +322,14 @@ export default function ApiKeysPage() {
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Zap className="h-4 w-4" />
-                    Rate Limit
+                    <Key className="h-4 w-4" />
+                    Active Keys
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {rateLimitUsed}/{rateLimitMax}/min
-                  </span>
+                  <span className="text-lg font-bold">{apiKeys.length}</span>
                 </div>
-                <Progress
-                  value={(rateLimitUsed / rateLimitMax) * 100}
-                  className="h-2"
-                  indicatorClassName={
-                    rateLimitUsed / rateLimitMax > 0.8
-                      ? "bg-warning"
-                      : "bg-primary"
-                  }
-                />
+                <p className="text-xs text-muted-foreground">
+                  Keys currently active in this workspace
+                </p>
               </CardContent>
             </Card>
           </motion.div>
@@ -318,15 +342,15 @@ export default function ApiKeysPage() {
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Activity className="h-4 w-4" />
-                    Requests Today
+                    <Clock className="h-4 w-4" />
+                    Expiring Soon
                   </div>
                   <span className="text-lg font-bold">
-                    {requestsToday.toLocaleString()}
+                    {apiKeys.filter((k) => k.expiresAt).length}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  +12.3% from yesterday
+                  Keys with an expiration date set
                 </p>
               </CardContent>
             </Card>
@@ -340,15 +364,15 @@ export default function ApiKeysPage() {
               <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <AlertTriangle className="h-4 w-4" />
-                    Remaining Quota
+                    <Shield className="h-4 w-4" />
+                    Admin Keys
                   </div>
                   <span className="text-lg font-bold">
-                    {remainingQuota.toLocaleString()}
+                    {apiKeys.filter((k) => k.permissions.includes("ADMIN")).length}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Resets at midnight UTC
+                  Keys with full administrative access
                 </p>
               </CardContent>
             </Card>
@@ -385,19 +409,9 @@ export default function ApiKeysPage() {
                   variant="outline"
                   className="gap-2 shrink-0"
                   onClick={handleTestWebhook}
-                  disabled={testingWebhook}
                 >
-                  {testingWebhook ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Testing...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      Test
-                    </>
-                  )}
+                  <Send className="h-4 w-4" />
+                  Test
                 </Button>
               </div>
             </CardContent>
@@ -428,20 +442,27 @@ export default function ApiKeysPage() {
               <div className="space-y-2">
                 <Label>Permissions</Label>
                 <div className="flex gap-2">
-                  <Badge
-                    variant="secondary"
-                    className="cursor-pointer hover:bg-primary/10"
-                  >
-                    <Shield className="h-2.5 w-2.5 mr-1" />
-                    read
-                  </Badge>
-                  <Badge
-                    variant="secondary"
-                    className="cursor-pointer hover:bg-primary/10"
-                  >
-                    <Shield className="h-2.5 w-2.5 mr-1" />
-                    write
-                  </Badge>
+                  {(["READ", "WRITE", "ADMIN"] as ApiKeyPermission[]).map((perm) => (
+                    <Badge
+                      key={perm}
+                      variant="secondary"
+                      className={`cursor-pointer hover:bg-primary/10 capitalize ${
+                        newKeyPermissions.includes(perm)
+                          ? "bg-primary/15 text-primary border border-primary/20"
+                          : "opacity-60"
+                      }`}
+                      onClick={() =>
+                        setNewKeyPermissions((prev) =>
+                          prev.includes(perm)
+                            ? prev.filter((p) => p !== perm)
+                            : [...prev, perm]
+                        )
+                      }
+                    >
+                      <Shield className="h-2.5 w-2.5 mr-1" />
+                      {perm.toLowerCase()}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             </div>
@@ -449,44 +470,45 @@ export default function ApiKeysPage() {
               <Button variant="outline" onClick={() => setShowNewKey(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setShowNewKey(false)}>Generate Key</Button>
+              <Button
+                onClick={handleGenerateKey}
+                disabled={createApiKeyMutation.isPending}
+              >
+                {createApiKeyMutation.isPending ? "Generating..." : "Generate Key"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        <Dialog
-          open={showRegenerateDialog}
-          onOpenChange={setShowRegenerateDialog}
-        >
+        <Dialog open={Boolean(createdKey)} onOpenChange={(open) => !open && setCreatedKey(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Regenerate API Key</DialogTitle>
+              <DialogTitle>API Key Created</DialogTitle>
               <DialogDescription>
-                This will invalidate the existing key and generate a new one.
-                Any applications using the old key will stop working
-                immediately.
+                Copy your secret key now. For security, it will not be shown again.
               </DialogDescription>
             </DialogHeader>
-            <div className="rounded-lg border border-warning/20 bg-warning/5 p-3 flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-              <p className="text-sm text-muted-foreground">
-                This action cannot be undone. Make sure to update all
-                integrations with the new key.
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs font-mono bg-muted px-3 py-2 rounded-md break-all">
+                  {createdKey?.secretKey}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 shrink-0"
+                  onClick={() => createdKey && handleCopySecret(createdKey.secretKey)}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Key name: {createdKey?.name} &middot; Prefix: {createdKey?.keyPrefix}
               </p>
             </div>
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowRegenerateDialog(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => setShowRegenerateDialog(false)}
-              >
-                Regenerate Key
-              </Button>
+              <Button onClick={() => setCreatedKey(null)}>Done</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -515,9 +537,10 @@ export default function ApiKeysPage() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => setShowRevokeDialog(false)}
+                onClick={confirmRevoke}
+                disabled={revokeApiKeyMutation.isPending}
               >
-                Revoke Key
+                {revokeApiKeyMutation.isPending ? "Revoking..." : "Revoke Key"}
               </Button>
             </DialogFooter>
           </DialogContent>

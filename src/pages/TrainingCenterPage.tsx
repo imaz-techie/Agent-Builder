@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Play,
-  Pause,
   RotateCcw,
   CheckCircle2,
   Loader2,
@@ -11,13 +10,11 @@ import {
   Upload,
   AlertTriangle,
   Info,
-  Filter,
   Plus,
   Database,
   FileText,
-  Zap,
-  ChevronRight,
   XCircle,
+  Cpu,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,91 +22,119 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDropzone } from "react-dropzone";
 import { cn } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/utils";
+import {
+  useTrainingDatasetsQuery,
+  useTrainingJobsQuery,
+  useTrainingJobLogsQuery,
+} from "@/hooks/queries/useTrainingQueries";
+import {
+  useCreateTrainingDatasetMutation,
+  useStartTrainingJobMutation,
+  useCancelTrainingJobMutation,
+  useRetryTrainingJobMutation,
+} from "@/hooks/mutations/useTrainingMutations";
+import { useAgentsQuery } from "@/hooks/queries/useAgentQueries";
+import type { TrainingJob, TrainingStatus } from "@/types/training.types";
+import { formatFileSize } from "@/types/training.types";
 
-const trainingJobs = [
-  {
-    id: "tj_1",
-    name: "Customer Support Agent",
-    status: "completed" as const,
-    progress: 100,
-    chunks: 2450,
-    accuracy: 94.2,
-    duration: "12m 34s",
-    model: "GPT-4o",
-    startedAt: "2026-07-23T08:00:00Z",
-    completedAt: "2026-07-23T08:12:34Z",
-  },
-  {
-    id: "tj_2",
-    name: "Product Knowledge Base",
-    status: "training" as const,
-    progress: 67,
-    chunks: 3120,
-    accuracy: null as number | null,
-    duration: null,
-    eta: "5m 20s",
-    model: "GPT-4o",
-    startedAt: "2026-07-23T14:10:00Z",
-    completedAt: null,
-  },
-  {
-    id: "tj_3",
-    name: "FAQ Bot",
-    status: "queued" as const,
-    progress: 0,
-    chunks: 890,
-    accuracy: null as number | null,
-    duration: null,
-    model: "GPT-4o Mini",
-    startedAt: null,
-    completedAt: null,
-  },
-];
-
-const jobStatusConfig = {
-  completed: { badge: "text-emerald-600 bg-emerald-500/10 border-emerald-500/20", label: "Completed", icon: CheckCircle2 },
-  training: { badge: "text-blue-600 bg-blue-500/10 border-blue-500/20", label: "Training", icon: Loader2 },
-  queued: { badge: "text-muted-foreground bg-muted border-border", label: "Queued", icon: Clock },
-  failed: { badge: "text-red-600 bg-red-500/10 border-red-500/20", label: "Failed", icon: XCircle },
+const jobStatusConfig: Record<
+  TrainingStatus,
+  { badge: string; label: string; icon: typeof CheckCircle2 }
+> = {
+  COMPLETED: { badge: "text-emerald-600 bg-emerald-500/10 border-emerald-500/20", label: "Completed", icon: CheckCircle2 },
+  IN_PROGRESS: { badge: "text-blue-600 bg-blue-500/10 border-blue-500/20", label: "Training", icon: Loader2 },
+  QUEUED: { badge: "text-muted-foreground bg-muted border-border", label: "Queued", icon: Clock },
+  FAILED: { badge: "text-red-600 bg-red-500/10 border-red-500/20", label: "Failed", icon: XCircle },
+  CANCELLED: { badge: "text-amber-600 bg-amber-500/10 border-amber-500/20", label: "Cancelled", icon: XCircle },
 };
 
-const logEntries = [
-  { time: "14:10:00", level: "info" as const, message: "Training job 'Product Knowledge Base' started" },
-  { time: "14:10:01", level: "info" as const, message: "Loading dataset: 3,120 chunks from 12 files" },
-  { time: "14:10:03", level: "success" as const, message: "Dataset validated successfully. Token count: 1,245,000" },
-  { time: "14:10:05", level: "info" as const, message: "Initializing fine-tuning pipeline with GPT-4o base model" },
-  { time: "14:10:12", level: "warning" as const, message: "Chunk kf_007 failed validation — skipping 23 malformed entries" },
-  { time: "14:11:30", level: "info" as const, message: "Epoch 1/50 complete — loss: 0.412, accuracy: 67.3%" },
-  { time: "14:12:45", level: "info" as const, message: "Epoch 2/50 complete — loss: 0.301, accuracy: 74.1%" },
-  { time: "14:14:00", level: "info" as const, message: "Epoch 3/50 complete — loss: 0.218, accuracy: 81.6%" },
-  { time: "14:15:20", level: "success" as const, message: "Checkpoint saved: model_checkpoint_ep3.pt (124 MB)" },
-  { time: "14:16:00", level: "info" as const, message: "Epoch 4/50 complete — loss: 0.156, accuracy: 86.9%" },
-  { time: "14:17:10", level: "warning" as const, message: "Learning rate reduced to 0.0001 (plateau detected)" },
-  { time: "14:18:00", level: "error" as const, message: "Temporary API rate limit hit — retrying in 30s..." },
-];
+const ACTIVE_STATUSES: TrainingStatus[] = ["QUEUED", "IN_PROGRESS"];
 
-const recentUploads = [
-  { name: "ProductFAQ_v3.pdf", size: "4.2 MB", uploadedAt: "2 hours ago" },
-  { name: "Feature_Updates.docx", size: "1.8 MB", uploadedAt: "5 hours ago" },
-  { name: "CustomerFeedback_Q2.csv", size: "12.3 MB", uploadedAt: "Yesterday" },
-];
+function parseLogLine(line: string): { time: string; message: string } {
+  const match = line.match(/^\[([^\]]+)\]\s*(.*)$/);
+  if (match) return { time: match[1], message: match[2] };
+  return { time: "", message: line };
+}
 
-const levelConfig = {
-  info: { color: "text-blue-400", icon: Info, bg: "bg-blue-500/10" },
-  success: { color: "text-emerald-400", icon: CheckCircle2, bg: "bg-emerald-500/10" },
-  warning: { color: "text-amber-400", icon: AlertTriangle, bg: "bg-amber-500/10" },
-  error: { color: "text-red-400", icon: XCircle, bg: "bg-red-500/10" },
-};
+type LogLevel = "info" | "success" | "warning" | "error";
+
+function logLevelOf(message: string): LogLevel {
+  const lower = message.toLowerCase();
+  if (lower.includes("fail") || lower.includes("error")) return "error";
+  if (lower.includes("warn") || lower.includes("skip")) return "warning";
+  if (lower.includes("success") || lower.includes("complete")) return "success";
+  return "info";
+}
+
+function LogLevelIcon({ message }: { message: string }) {
+  const level = logLevelOf(message);
+  if (level === "error") {
+    return <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-red-400" />;
+  }
+  if (level === "warning") {
+    return <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400" />;
+  }
+  if (level === "success") {
+    return <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-400" />;
+  }
+  return <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-blue-400" />;
+}
 
 export default function TrainingCenterPage() {
   const [logFilter, setLogFilter] = useState<string>("all");
   const [isDragActive, setIsDragActive] = useState(false);
+  const [showStartDialog, setShowStartDialog] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
+  const [jobName, setJobName] = useState("Fine-tune run");
+  const [agentId, setAgentId] = useState("");
+  const [datasetId, setDatasetId] = useState("");
+  const [epochs, setEpochs] = useState(3);
+  const [learningRate, setLearningRate] = useState(0.0001);
+  const [batchSize, setBatchSize] = useState(8);
+
+  const { data: jobsData, isLoading: jobsLoading } = useTrainingJobsQuery();
+  const jobs = jobsData?.jobs ?? [];
+  const { data: datasets = [] } = useTrainingDatasetsQuery();
+  const { data: agents = [] } = useAgentsQuery();
+  const activeJobId = selectedJobId ?? jobs[0]?.id ?? null;
+  const { data: logs = [], isLoading: logsLoading } = useTrainingJobLogsQuery(activeJobId);
+
+  const createDataset = useCreateTrainingDatasetMutation();
+  const startJob = useStartTrainingJobMutation();
+  const cancelJob = useCancelTrainingJobMutation();
+  const retryJob = useRetryTrainingJobMutation();
 
   const onDrop = (acceptedFiles: File[]) => {
-    console.log("Training upload:", acceptedFiles);
     setIsDragActive(false);
+    acceptedFiles.forEach((file) => {
+      const name = file.name.replace(/\.[^.]+$/, "") || file.name;
+      createDataset.mutate({
+        name,
+        version: "v1.0",
+        sampleCount: Math.max(1, Math.round(file.size / 400)),
+      });
+    });
   };
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -126,7 +151,34 @@ export default function TrainingCenterPage() {
     maxSize: 100 * 1024 * 1024,
   });
 
-  const filteredLogs = logEntries.filter((l) => logFilter === "all" || l.level === logFilter);
+  const parsedLogs = logs.map(parseLogLine);
+
+  const filteredLogs =
+    logFilter === "all"
+      ? parsedLogs
+      : parsedLogs.filter((log) => logLevelOf(log.message) === logFilter);
+
+  const activeCount = jobs.filter((j) => j.status === "IN_PROGRESS").length;
+  const queuedCount = jobs.filter((j) => j.status === "QUEUED").length;
+  const completedCount = jobs.filter((j) => j.status === "COMPLETED").length;
+
+  const handleStart = () => {
+    if (!agentId) return;
+    startJob.mutate(
+      {
+        jobName,
+        agentId,
+        datasetId: datasetId || undefined,
+        epochs,
+        learningRate,
+        batchSize,
+      },
+      { onSuccess: () => setShowStartDialog(false) }
+    );
+  };
+
+  const agentNameFor = (job: TrainingJob) =>
+    agents.find((a) => a.id === job.agentId)?.name ?? "Unknown Agent";
 
   return (
     <div className="space-y-8">
@@ -138,11 +190,10 @@ export default function TrainingCenterPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2">
-            <RotateCcw className="h-4 w-4" />
-            Retrain All
-          </Button>
-          <Button className="gap-2 shadow-sm">
+          <Button
+            className="gap-2 shadow-sm"
+            onClick={() => setShowStartDialog(true)}
+          >
             <Play className="h-4 w-4" />
             Start New Training
           </Button>
@@ -151,9 +202,9 @@ export default function TrainingCenterPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Active Jobs", value: trainingJobs.filter((j) => j.status === "training").length, icon: Loader2, color: "text-blue-500 bg-blue-500/10" },
-          { label: "Completed", value: trainingJobs.filter((j) => j.status === "completed").length, icon: CheckCircle2, color: "text-emerald-500 bg-emerald-500/10" },
-          { label: "Avg Accuracy", value: "94.2%", icon: TrendingUp, color: "text-purple-500 bg-purple-500/10" },
+          { label: "Active Jobs", value: activeCount, icon: Loader2, color: "text-blue-500 bg-blue-500/10" },
+          { label: "Queued", value: queuedCount, icon: Clock, color: "text-amber-500 bg-amber-500/10" },
+          { label: "Completed", value: completedCount, icon: CheckCircle2, color: "text-emerald-500 bg-emerald-500/10" },
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -190,118 +241,152 @@ export default function TrainingCenterPage() {
         </TabsList>
 
         <TabsContent value="jobs" className="space-y-4">
-          {trainingJobs.map((job, i) => {
-            const config = jobStatusConfig[job.status];
-            const StatusIcon = config.icon;
-            return (
-              <motion.div
-                key={job.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.06 }}
-              >
-                <Card className="hover:shadow-md transition-all">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className={cn(
-                          "h-11 w-11 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0",
-                          job.status === "completed" ? "bg-emerald-500" : job.status === "training" ? "bg-blue-500" : "bg-muted"
-                        )}>
-                          {job.name.charAt(0)}
+          {jobsLoading ? (
+            <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Loading training jobs...
+            </div>
+          ) : jobs.length === 0 ? (
+            <Card>
+              <CardContent className="p-10 text-center space-y-3">
+                <Database className="h-8 w-8 text-muted-foreground/40 mx-auto" />
+                <p className="text-sm text-muted-foreground">
+                  No training jobs yet. Start a new training run to fine-tune your agents.
+                </p>
+                <Button className="gap-2" onClick={() => setShowStartDialog(true)}>
+                  <Plus className="h-4 w-4" />
+                  Start New Training
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            jobs.map((job, i) => {
+              const config = jobStatusConfig[job.status];
+              const StatusIcon = config.icon;
+              const dataset = datasets.find((d) => d.id === job.datasetId);
+              return (
+                <motion.div
+                  key={job.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.06 }}
+                >
+                  <Card className="hover:shadow-md transition-all">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                          <div className={cn(
+                            "h-11 w-11 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0",
+                            job.status === "COMPLETED" ? "bg-emerald-500" : ACTIVE_STATUSES.includes(job.status) ? "bg-blue-500" : "bg-muted"
+                          )}>
+                            {job.jobName.charAt(0)}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-sm">{job.jobName}</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Agent: {agentNameFor(job)}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-sm">{job.name}</h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">Model: {job.model}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={cn("text-[10px] gap-1.5 border", config.badge)}>
-                          <StatusIcon className={cn("h-3 w-3", job.status === "training" && "animate-spin")} />
-                          {config.label}
-                        </Badge>
-                        {job.status === "training" && (
-                          <Button variant="outline" size="sm" className="gap-1.5 h-7">
-                            <Pause className="h-3 w-3" /> Pause
-                          </Button>
-                        )}
-                        {job.status === "completed" && (
-                          <Button variant="outline" size="sm" className="gap-1.5 h-7">
-                            <RotateCcw className="h-3 w-3" /> Retrain
-                          </Button>
-                        )}
-                        {job.status === "queued" && (
-                          <Button size="sm" className="gap-1.5 h-7">
-                            <Play className="h-3 w-3" /> Start
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-6 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1.5">
-                            <Database className="h-3.5 w-3.5" />
-                            {job.chunks.toLocaleString()} chunks
-                          </span>
-                          {job.accuracy !== null && (
-                            <span className="flex items-center gap-1.5">
-                              <Zap className="h-3.5 w-3.5 text-amber-500" />
-                              Accuracy: {job.accuracy}%
-                            </span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={cn("text-[10px] gap-1.5 border", config.badge)}>
+                            <StatusIcon className={cn("h-3 w-3", job.status === "IN_PROGRESS" && "animate-spin")} />
+                            {config.label}
+                          </Badge>
+                          {ACTIVE_STATUSES.includes(job.status) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 h-7"
+                              onClick={() => cancelJob.mutate(job.id)}
+                              disabled={cancelJob.isPending}
+                            >
+                              <XCircle className="h-3 w-3" /> Cancel
+                            </Button>
                           )}
-                          {job.duration && (
+                          {(job.status === "FAILED" || job.status === "CANCELLED" || job.status === "COMPLETED") && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 h-7"
+                              onClick={() => retryJob.mutate(job.id)}
+                              disabled={retryJob.isPending}
+                            >
+                              <RotateCcw className="h-3 w-3" /> Retrain
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-6 text-xs text-muted-foreground flex-wrap">
+                            <span className="flex items-center gap-1.5">
+                              <Database className="h-3.5 w-3.5" />
+                              {dataset ? dataset.name : "No dataset"}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <Cpu className="h-3.5 w-3.5" />
+                              Epoch {job.currentEpoch}/{job.totalEpochs}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <TrendingUp className="h-3.5 w-3.5 text-amber-500" />
+                              Loss: {job.currentLoss}
+                            </span>
                             <span className="flex items-center gap-1.5">
                               <Clock className="h-3.5 w-3.5" />
-                              Duration: {job.duration}
+                              LR: {job.learningRate}
                             </span>
-                          )}
-                          {job.eta && (
-                            <span className="flex items-center gap-1.5">
-                              <Clock className="h-3.5 w-3.5 text-blue-500" />
-                              ETA: {job.eta}
-                            </span>
-                          )}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground/70">
+                            Started {formatRelativeTime(job.createdAt)}
+                          </span>
                         </div>
-                      </div>
 
-                      {job.status === "training" && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">Progress</span>
-                            <span className="font-medium tabular-nums">{job.progress}%</span>
+                            <span className="font-medium tabular-nums">
+                              {job.progressPercent.toFixed(0)}%
+                            </span>
                           </div>
                           <div className="relative">
-                            <Progress value={job.progress} className="h-2" />
-                            <motion.div
-                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                              animate={{ x: ["-100%", "200%"] }}
-                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                            />
+                            <Progress value={job.progressPercent} className="h-2" />
+                            {ACTIVE_STATUSES.includes(job.status) && (
+                              <motion.div
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                                animate={{ x: ["-100%", "200%"] }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                              />
+                            )}
                           </div>
                         </div>
-                      )}
 
-                      {job.status === "completed" && (
-                        <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Training completed successfully
-                        </div>
-                      )}
-
-                      {job.status === "queued" && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5" />
-                          Waiting for available resources
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
+                        {job.errorMessage && (
+                          <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            {job.errorMessage}
+                          </div>
+                        )}
+                        {job.status === "COMPLETED" && (
+                          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Training completed successfully
+                          </div>
+                        )}
+                        {job.status === "QUEUED" && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            Waiting for available resources
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })
+          )}
         </TabsContent>
 
         <TabsContent value="upload" className="space-y-6">
@@ -357,30 +442,41 @@ export default function TrainingCenterPage() {
           </Card>
 
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Recent Uploads</h3>
-            {recentUploads.map((upload, i) => (
-              <motion.div
-                key={upload.name}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.25, delay: i * 0.05 }}
-              >
-                <Card className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                        <FileText className="h-4 w-4 text-emerald-500" />
+            <h3 className="text-sm font-semibold">Registered Datasets</h3>
+            {datasets.length === 0 ? (
+              <p className="text-xs text-muted-foreground/70 py-4 text-center">
+                No datasets registered yet. Drop a file above to create one.
+              </p>
+            ) : (
+              datasets.map((dataset, i) => (
+                <motion.div
+                  key={dataset.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.25, delay: i * 0.05 }}
+                >
+                  <Card className="hover:shadow-sm transition-shadow">
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                          <FileText className="h-4 w-4 text-emerald-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{dataset.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            v{dataset.version} · {dataset.sampleCount.toLocaleString()} samples ·{" "}
+                            {formatRelativeTime(dataset.createdAt)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">{upload.name}</p>
-                        <p className="text-xs text-muted-foreground">{upload.uploadedAt}</p>
-                      </div>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{upload.size}</span>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                      <span className="text-xs text-muted-foreground">
+                        {formatFileSize(dataset.fileSizeBytes)}
+                      </span>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            )}
           </div>
         </TabsContent>
 
@@ -402,6 +498,25 @@ export default function TrainingCenterPage() {
             </div>
           </div>
 
+          <div className="w-full sm:w-72">
+            <Label className="text-xs text-muted-foreground">Job</Label>
+            <Select
+              value={activeJobId ?? ""}
+              onValueChange={(value) => setSelectedJobId(value)}
+            >
+              <SelectTrigger className="h-9 mt-1.5">
+                <SelectValue placeholder="Select a job" />
+              </SelectTrigger>
+              <SelectContent>
+                {jobs.map((job) => (
+                  <SelectItem key={job.id} value={job.id}>
+                    {job.jobName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <Card className="overflow-hidden">
             <div className="bg-zinc-950 dark:bg-zinc-900 rounded-xl p-1">
               <div className="bg-zinc-900 dark:bg-zinc-950 rounded-lg border border-zinc-800 overflow-hidden">
@@ -415,32 +530,158 @@ export default function TrainingCenterPage() {
                 </div>
 
                 <div className="max-h-[420px] overflow-y-auto p-4 space-y-1 font-mono text-xs">
-                  <AnimatePresence>
-                    {filteredLogs.map((log, i) => {
-                      const config = levelConfig[log.level];
-                      const LogIcon = config.icon;
-                      return (
+                  {logsLoading ? (
+                    <div className="flex items-center justify-center py-8 text-zinc-500">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                      Loading logs...
+                    </div>
+                  ) : parsedLogs.length === 0 ? (
+                    <p className="text-zinc-500 py-8 text-center">No logs available for this job.</p>
+                  ) : filteredLogs.length === 0 ? (
+                    <p className="text-zinc-500 py-8 text-center">
+                      No logs match the selected filter.
+                    </p>
+                  ) : (
+                    <AnimatePresence>
+                      {filteredLogs.map((log, i) => (
                         <motion.div
                           key={`${log.time}-${i}`}
                           initial={{ opacity: 0, x: -4 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2, delay: i * 0.02 }}
+                          transition={{ duration: 0.2, delay: Math.min(i, 20) * 0.01 }}
                           className="flex items-start gap-3 py-1 hover:bg-white/5 rounded px-2 -mx-2 transition-colors"
                         >
                           <span className="text-zinc-500 shrink-0 tabular-nums">{log.time}</span>
-                          <LogIcon className={cn("h-3.5 w-3.5 shrink-0 mt-0.5", config.color)} />
-                          <span className="text-zinc-300 dark:text-zinc-400 leading-relaxed">{log.message}</span>
+                          <LogLevelIcon message={log.message} />
+                          <span className="text-zinc-300 dark:text-zinc-400 leading-relaxed break-words">
+                            {log.message}
+                          </span>
                         </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
+                      ))}
+                    </AnimatePresence>
+                  )}
                 </div>
               </div>
             </div>
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showStartDialog} onOpenChange={setShowStartDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Start New Training</DialogTitle>
+            <DialogDescription>
+              Configure a fine-tuning job for one of your agents.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="job-name" className="text-xs text-muted-foreground">
+                Job Name
+              </Label>
+              <Input
+                id="job-name"
+                value={jobName}
+                onChange={(e) => setJobName(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Agent</Label>
+              <Select value={agentId} onValueChange={setAgentId}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select an agent" />
+                </SelectTrigger>
+                <SelectContent>
+                  {agents.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {agent.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                Dataset (optional)
+              </Label>
+              <Select value={datasetId} onValueChange={setDatasetId}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="No dataset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No dataset</SelectItem>
+                  {datasets.map((dataset) => (
+                    <SelectItem key={dataset.id} value={dataset.id}>
+                      {dataset.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Epochs</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={epochs}
+                  onChange={(e) => setEpochs(parseInt(e.target.value, 10) || 1)}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">LR</Label>
+                <Input
+                  type="number"
+                  min={0.00001}
+                  max={1}
+                  step={0.0001}
+                  value={learningRate}
+                  onChange={(e) => setLearningRate(parseFloat(e.target.value) || 0.0001)}
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Batch</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={512}
+                  value={batchSize}
+                  onChange={(e) => setBatchSize(parseInt(e.target.value, 10) || 1)}
+                  className="h-9 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowStartDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="gap-2"
+              onClick={handleStart}
+              disabled={!agentId || !jobName.trim() || startJob.isPending}
+            >
+              {startJob.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              {startJob.isPending ? "Queuing..." : "Start Training"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Separator className="my-4" />
     </div>
   );
 }

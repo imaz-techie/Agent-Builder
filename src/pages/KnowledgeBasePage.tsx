@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDropzone } from "react-dropzone";
+import { toast } from "sonner";
 import {
   Upload,
   Search,
@@ -30,54 +31,80 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { knowledgeFiles, type KnowledgeFileType, type KnowledgeFileStatus } from "@/lib/mock-data";
+import { useKnowledgeFilesQuery } from "@/hooks/queries/useKnowledgeQueries";
+import {
+  useUploadKnowledgeFileMutation,
+  useDeleteKnowledgeFileMutation,
+} from "@/hooks/mutations/useKnowledgeMutations";
+import { knowledgeService } from "@/services/knowledge.service";
+import type {
+  KnowledgeFile,
+  KnowledgeFileStatus,
+  KnowledgeChunk,
+} from "@/types/knowledge.types";
+import { formatFileSize } from "@/types/knowledge.types";
 import { formatRelativeTime, cn, formatNumber } from "@/lib/utils";
 
 const fileIcons: Record<string, React.ElementType> = {
-  pdf: FileText,
-  docx: File,
-  txt: FileCode,
-  csv: FileSpreadsheet,
-  md: FileCode,
-  json: FileJson,
+  PDF: FileText,
+  DOCX: File,
+  TXT: FileCode,
+  CSV: FileSpreadsheet,
+  MARKDOWN: FileCode,
+  JSON: FileJson,
+  URL: Globe,
 };
 
 const fileIconColors: Record<string, string> = {
-  pdf: "text-red-500 bg-red-500/10",
-  docx: "text-blue-500 bg-blue-500/10",
-  txt: "text-zinc-500 bg-zinc-500/10",
-  csv: "text-emerald-500 bg-emerald-500/10",
-  md: "text-purple-500 bg-purple-500/10",
-  json: "text-amber-500 bg-amber-500/10",
+  PDF: "text-red-500 bg-red-500/10",
+  DOCX: "text-blue-500 bg-blue-500/10",
+  TXT: "text-zinc-500 bg-zinc-500/10",
+  CSV: "text-emerald-500 bg-emerald-500/10",
+  MARKDOWN: "text-purple-500 bg-purple-500/10",
+  JSON: "text-amber-500 bg-amber-500/10",
+  URL: "text-sky-500 bg-sky-500/10",
 };
 
 const statusConfig: Record<
   KnowledgeFileStatus,
   { icon: React.ElementType; color: string; bg: string; label: string }
 > = {
-  indexed: {
+  INDEXED: {
     icon: CheckCircle2,
     color: "text-emerald-600 dark:text-emerald-400",
     bg: "bg-emerald-500/10 border-emerald-500/20",
     label: "Ready",
   },
-  processing: {
+  PROCESSING: {
     icon: Loader2,
     color: "text-amber-600 dark:text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/20",
     label: "Processing",
   },
-  failed: {
+  FAILED: {
     icon: XCircle,
     color: "text-red-600 dark:text-red-400",
     bg: "bg-red-500/10 border-red-500/20",
     label: "Error",
+  },
+  PENDING: {
+    icon: Loader2,
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+    label: "Pending",
   },
 };
 
@@ -98,13 +125,23 @@ export default function KnowledgeBasePage() {
   const [sortKey, setSortKey] = useState<SortKey>("uploadedAt");
   const [sortAsc, setSortAsc] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [detailsFile, setDetailsFile] = useState<KnowledgeFile | null>(null);
+  const [detailsChunks, setDetailsChunks] = useState<KnowledgeChunk[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    console.log("Dropped files:", acceptedFiles);
-    setIsDragActive(false);
-  }, []);
+  const { data: files = [], isLoading, isError } = useKnowledgeFilesQuery();
+  const uploadMutation = useUploadKnowledgeFileMutation();
+  const deleteMutation = useDeleteKnowledgeFileMutation();
 
-  const { getRootProps, getInputProps } = useDropzone({
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      setIsDragActive(false);
+      acceptedFiles.forEach((file) => uploadMutation.mutate(file));
+    },
+    [uploadMutation]
+  );
+
+  const { getRootProps, getInputProps, open } = useDropzone({
     onDrop,
     onDragEnter: () => setIsDragActive(true),
     onDragLeave: () => setIsDragActive(false),
@@ -119,7 +156,34 @@ export default function KnowledgeBasePage() {
     maxSize: 50 * 1024 * 1024,
   });
 
-  const filteredFiles = knowledgeFiles
+  const openDetails = useCallback((file: KnowledgeFile) => {
+    setDetailsFile(file);
+    setDetailsChunks([]);
+    setDetailsLoading(true);
+    knowledgeService
+      .getFileDetails(file.id)
+      .then((details) => {
+        setDetailsChunks(details.chunks);
+      })
+      .catch(() => {
+        toast.error("Failed to load file details", {
+          description: "The file could not be retrieved. Please try again.",
+        });
+      })
+      .finally(() => setDetailsLoading(false));
+  }, []);
+
+  const downloadFile = useCallback((file: KnowledgeFile) => {
+    if (file.url) {
+      window.open(file.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    toast.error("Download not available", {
+      description: "This file has no downloadable URL. Upload it again to enable downloads.",
+    });
+  }, []);
+
+  const filteredFiles = files
     .filter((f) => {
       const matchesSearch = f.name.toLowerCase().includes(search.toLowerCase());
       const matchesType = typeFilter === "all" || f.type === typeFilter;
@@ -130,9 +194,11 @@ export default function KnowledgeBasePage() {
       if (sortKey === "name") cmp = a.name.localeCompare(b.name);
       else if (sortKey === "type") cmp = a.type.localeCompare(b.type);
       else if (sortKey === "status") cmp = a.status.localeCompare(b.status);
-      else if (sortKey === "chunks") cmp = a.chunks - b.chunks;
-      else if (sortKey === "size") cmp = a.size.localeCompare(b.size);
-      else if (sortKey === "uploadedAt") cmp = new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime();
+      else if (sortKey === "chunks") cmp = a.chunksCount - b.chunksCount;
+      else if (sortKey === "size")
+        cmp = parseInt(a.sizeBytes, 10) - parseInt(b.sizeBytes, 10);
+      else if (sortKey === "uploadedAt")
+        cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       return sortAsc ? cmp : -cmp;
     });
 
@@ -141,23 +207,23 @@ export default function KnowledgeBasePage() {
     else { setSortKey(key); setSortAsc(false); }
   };
 
-  const totalChunks = knowledgeFiles.reduce((acc, f) => acc + f.chunks, 0);
+  const totalChunks = files.reduce((acc, f) => acc + f.chunksCount, 0);
   const totalEmbeddings = totalChunks * 126;
-  const totalSizeBytes = 2.3 * 1024 * 1024 * 1024;
+  const totalSizeBytes = files.reduce((acc, f) => acc + parseInt(f.sizeBytes, 10), 0);
 
   const stats = [
-    { label: "Total Files", value: knowledgeFiles.length, icon: Database, color: "text-blue-500 bg-blue-500/10" },
+    { label: "Total Files", value: files.length, icon: Database, color: "text-blue-500 bg-blue-500/10" },
     { label: "Total Chunks", value: formatNumber(totalChunks), icon: FileText, color: "text-purple-500 bg-purple-500/10" },
     { label: "Embeddings", value: formatNumber(totalEmbeddings), icon: HardDrive, color: "text-emerald-500 bg-emerald-500/10" },
-    { label: "Storage Used", value: "2.3 GB", icon: HardDrive, color: "text-amber-500 bg-amber-500/10" },
+    { label: "Storage Used", value: formatFileSize(totalSizeBytes), icon: HardDrive, color: "text-amber-500 bg-amber-500/10" },
   ];
 
   const filterTypes = [
     { label: "All", value: "all" },
-    { label: "PDF", value: "pdf" },
-    { label: "DOCX", value: "docx" },
-    { label: "TXT", value: "txt" },
-    { label: "CSV", value: "csv" },
+    { label: "PDF", value: "PDF" },
+    { label: "DOCX", value: "DOCX" },
+    { label: "TXT", value: "TXT" },
+    { label: "CSV", value: "CSV" },
   ];
 
   return (
@@ -169,7 +235,7 @@ export default function KnowledgeBasePage() {
             Manage your training data and knowledge sources
           </p>
         </div>
-        <Button className="gap-2 shadow-sm">
+        <Button className="gap-2 shadow-sm" onClick={open}>
           <Upload className="h-4 w-4" />
           Upload Files
         </Button>
@@ -378,18 +444,18 @@ export default function KnowledgeBasePage() {
                             <StatusIcon
                               className={cn(
                                 "h-3 w-3",
-                                file.status === "processing" && "animate-spin"
+                                file.status === "PROCESSING" && "animate-spin"
                               )}
                             />
                             {status.label}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-xs font-medium tabular-nums">
-                          {file.chunks > 0 ? formatNumber(file.chunks) : "—"}
+                          {file.chunksCount > 0 ? formatNumber(file.chunksCount) : "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">{file.size}</td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{formatFileSize(file.sizeBytes)}</td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">
-                          {formatRelativeTime(file.uploadedAt)}
+                          {formatRelativeTime(file.createdAt)}
                         </td>
                         <td className="px-4 py-3">
                           <DropdownMenu>
@@ -399,14 +465,14 @@ export default function KnowledgeBasePage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem className="gap-2">
+                              <DropdownMenuItem className="gap-2" onClick={() => openDetails(file)}>
                                 <Eye className="h-3.5 w-3.5" /> View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2">
+                              <DropdownMenuItem className="gap-2" onClick={() => downloadFile(file)}>
                                 <Download className="h-3.5 w-3.5" /> Download
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive">
+                              <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive" onClick={() => deleteMutation.mutate(file.id)}>
                                 <Trash2 className="h-3.5 w-3.5" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -419,13 +485,96 @@ export default function KnowledgeBasePage() {
               </tbody>
             </table>
           </div>
-          {filteredFiles.length === 0 && (
+          {isLoading && (
+            <div className="py-12 text-center">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mt-3">Loading files...</p>
+            </div>
+          )}
+          {isError && !isLoading && (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              Failed to load knowledge base files. Please check your connection and try again.
+            </div>
+          )}
+          {!isLoading && !isError && filteredFiles.length === 0 && (
             <div className="py-12 text-center text-sm text-muted-foreground">
               No files found matching your criteria.
             </div>
           )}
         </Card>
       </div>
+
+      <Dialog
+        open={Boolean(detailsFile)}
+        onOpenChange={(open) => {
+          if (!open) setDetailsFile(null);
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          {detailsFile && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2.5">
+                  <span className="text-base font-semibold truncate">
+                    {detailsFile.name}
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] uppercase font-mono shrink-0">
+                    {detailsFile.type}
+                  </Badge>
+                </DialogTitle>
+                <DialogDescription>
+                  File details and indexed chunks for this knowledge source.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: "Size", value: formatFileSize(detailsFile.sizeBytes) },
+                  { label: "Chunks", value: formatNumber(detailsFile.chunksCount) },
+                  { label: "Uploaded", value: formatRelativeTime(detailsFile.createdAt) },
+                  { label: "Status", value: statusConfig[detailsFile.status].label },
+                ].map((meta) => (
+                  <div key={meta.label} className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {meta.label}
+                    </p>
+                    <p className="mt-0.5 text-sm font-medium capitalize">{meta.value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {detailsLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : detailsChunks.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-muted-foreground">
+                    No chunks indexed for this file yet.
+                  </p>
+                ) : (
+                  detailsChunks.map((chunk) => (
+                    <div
+                      key={chunk.id}
+                      className="rounded-xl border border-border/70 bg-card p-3.5"
+                    >
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Chunk {chunk.chunkIndex + 1}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {formatNumber(chunk.tokenCount)} tokens
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-4 leading-relaxed">
+                        {chunk.content}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

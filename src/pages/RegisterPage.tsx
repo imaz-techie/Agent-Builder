@@ -8,7 +8,6 @@ import { Sparkles, Eye, EyeOff, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 
 const registerSchema = z
   .object({
@@ -38,12 +37,6 @@ const features = [
   "Real-time analytics and monitoring",
 ];
 
-const socialProviders = [
-  { name: "Google", color: "bg-[#ea4335]", letter: "G" },
-  { name: "GitHub", color: "bg-[#333]", letter: "GH" },
-  { name: "Microsoft", color: "bg-[#00a4ef]", letter: "MS" },
-];
-
 function getPasswordStrength(password: string) {
   let score = 0;
   if (password.length >= 8) score++;
@@ -62,10 +55,12 @@ function getPasswordStrength(password: string) {
   return { score, ...level };
 }
 
+import { useRegisterMutation } from "@/hooks/mutations/useAuthMutations";
+
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const registerMutation = useRegisterMutation();
 
   const {
     register,
@@ -75,6 +70,10 @@ export default function RegisterPage() {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
       terms: false,
     },
   });
@@ -89,17 +88,24 @@ export default function RegisterPage() {
   ];
 
   const onSubmit = (data: RegisterFormData) => {
-    setLoading(true);
-    console.log("Register:", data);
-    setTimeout(() => {
-      setLoading(false);
-      navigate("/dashboard");
-    }, 1500);
+    registerMutation.mutate(
+      {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        agreeToTerms: data.terms,
+      },
+      {
+        onSuccess: () => {
+          navigate("/dashboard");
+        },
+      }
+    );
   };
 
   return (
     <div className="min-h-screen flex bg-background">
-      <div className="hidden lg:flex lg:w-[40%] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden items-center justify-center">
+      <div className="hidden lg:flex lg:w-[40%] bg-gradient-linear-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 h-64 w-64 rounded-full bg-primary/20 blur-[100px]" />
           <div className="absolute bottom-20 right-20 h-48 w-48 rounded-full bg-secondary/20 blur-[80px]" />
@@ -161,33 +167,6 @@ export default function RegisterPage() {
             <p className="text-muted-foreground">
               Get started with AgentMax AI for free.
             </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {socialProviders.map((provider) => (
-              <Button
-                key={provider.name}
-                variant="outline"
-                className="gap-2 h-11"
-                onClick={() => setLoading(true)}
-              >
-                <div
-                  className={`h-5 w-5 rounded-full ${provider.color} flex items-center justify-center`}
-                >
-                  <span className="text-[10px] font-bold text-white">
-                    {provider.letter}
-                  </span>
-                </div>
-                <span className="text-sm">{provider.name}</span>
-              </Button>
-            ))}
-          </div>
-
-          <div className="relative mb-6">
-            <Separator />
-            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground">
-              or continue with email
-            </span>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -286,9 +265,8 @@ export default function RegisterPage() {
                         className="flex items-center gap-1.5 text-xs"
                       >
                         <div
-                          className={`h-3.5 w-3.5 rounded-full flex items-center justify-center transition-colors ${
-                            check.met ? "bg-success text-white" : "bg-muted"
-                          }`}
+                          className={`h-3.5 w-3.5 rounded-full flex items-center justify-center transition-colors ${check.met ? "bg-success text-white" : "bg-muted"
+                            }`}
                         >
                           {check.met && <Check className="h-2.5 w-2.5" />}
                         </div>
@@ -341,13 +319,8 @@ export default function RegisterPage() {
                 />
                 <span className="text-sm text-muted-foreground">
                   I agree to the{" "}
-                  <Link to="#" className="text-primary hover:underline">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link to="#" className="text-primary hover:underline">
-                    Privacy Policy
-                  </Link>
+                  <span className="text-primary">Terms of Service</span> and{" "}
+                  <span className="text-primary">Privacy Policy</span>
                 </span>
               </label>
               {errors.terms && (
@@ -357,8 +330,8 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full h-11" disabled={loading}>
-              {loading ? (
+            <Button type="submit" className="w-full h-11" disabled={registerMutation.isPending}>
+              {registerMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Create Account"
