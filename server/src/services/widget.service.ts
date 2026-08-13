@@ -134,32 +134,53 @@ export class WidgetService {
     return sanitizePublicConfig(config);
   }
 
+  /**
+   * Resolves a widget session: reuses an existing session that belongs to this
+   * agent, otherwise creates a new anonymous one owned by the agent creator.
+   */
+  private async resolvePublicSession(config: any, sessionId?: string): Promise<string> {
+    let targetSessionId = sessionId;
+    if (sessionId) {
+      const session = await chatRepository.findSessionById(sessionId, config.workspaceId);
+      if (!session || session.agentId !== config.agent.id) {
+        targetSessionId = undefined;
+      }
+    }
+
+    if (!targetSessionId) {
+      const created = await chatService.createSession(config.workspaceId, config.agent.createdById, {
+        agentId: config.agent.id,
+        title: "Widget Chat",
+      });
+      targetSessionId = created.id;
+    }
+
+    return targetSessionId;
+  }
+
+  async createPublicSession(token: string) {
+    const config = await widgetRepository.findPublishedWidgetByToken(token);
+    if (!config) {
+      throw ApiError.notFound("Widget configuration not found or not published");
+    }
+
+    const session = await chatService.createSession(config.workspaceId, config.agent.createdById, {
+      agentId: config.agent.id,
+      title: "Widget Chat",
+    });
+
+    return { sessionId: session.id };
+  }
+
   async sendPublicWidgetMessage(token: string, message: string, sessionId?: string) {
     const config = await widgetRepository.findPublishedWidgetByToken(token);
     if (!config) {
       throw ApiError.notFound("Widget configuration not found or not published");
     }
 
-    const agent = config.agent;
+    const targetSessionId = await this.resolvePublicSession(config, sessionId);
 
-    // Reuse existing session if it belongs to this agent, otherwise create a new one
-    let targetSessionId = sessionId;
-    if (sessionId) {
-      const session = await chatRepository.findSessionById(sessionId, config.workspaceId);
-      if (!session || session.agentId !== agent.id) {
-        targetSessionId = undefined;
-      }
-    }
-
-    if (!targetSessionId) {
-      const created = await chatService.createSession(config.workspaceId, agent.createdById, {
-        agentId: agent.id,
-        title: "Widget Chat",
-      });
-      targetSessionId = created.id;
-    }
-
-    const result = await chatService.sendMessage(config.workspaceId, agent.createdById, {
+    const result = await chatService.sendMessage(config.workspaceId, config.agent.createdById, {
       sessionId: targetSessionId,
       content: message,
       enableRag: config.enableRag,
@@ -169,6 +190,30 @@ export class WidgetService {
       sessionId: targetSessionId,
       ...result,
     };
+  }
+
+  async streamPublicWidgetMessage(
+    token: string,
+    sessionId: string,
+    content: string,
+    onChunk: (chunk: string) => void
+  ) {
+    const config = await widgetRepository.findPublishedWidgetByToken(token);
+    if (!config) {
+      throw ApiError.notFound("Widget configuration not found or not published");
+    }
+
+    const targetSessionId = await this.resolvePublicSession(config, sessionId);
+
+    await chatService.streamMessage(
+      config.workspaceId,
+      config.agent.createdById,
+      targetSessionId,
+      content,
+      onChunk
+    );
+
+    return { sessionId: targetSessionId };
   }
 }
 

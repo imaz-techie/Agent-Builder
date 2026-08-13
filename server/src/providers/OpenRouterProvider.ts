@@ -3,25 +3,32 @@ import { ILLMProvider } from "./ILLMProvider";
 import { ProviderType, LlmModel } from "@prisma/client";
 import { LLMCompletionOptions, LLMCompletionResponse } from "../interfaces/llm.interface";
 
-// Map Prisma LlmModel enum → actual model strings the API accepts
+// Map Prisma LlmModel enum → OpenRouter model strings (free tier preferred)
 const MODEL_MAP: Record<string, string> = {
-  GPT_4O: "llama-3.1-8b-instant", // Groq default
-  GPT_4O_MINI: "llama-3.1-8b-instant", // Groq default
-  CLAUDE_3_5_SONNET: "llama-3.1-8b-instant",
-  CLAUDE_3_HAIKU: "llama-3.1-8b-instant",
-  GEMINI_1_5_PRO: "llama-3.1-8b-instant",
-  LLAMA_3_1_70B: "llama-3.1-70b-versatile",
+  GPT_4O: "meta-llama/llama-3.1-8b-instruct:free",
+  GPT_4O_MINI: "meta-llama/llama-3.1-8b-instruct:free",
+  CLAUDE_3_5_SONNET: "meta-llama/llama-3.1-8b-instruct:free",
+  CLAUDE_3_HAIKU: "meta-llama/llama-3.1-8b-instruct:free",
+  GEMINI_1_5_PRO: "meta-llama/llama-3.1-8b-instruct:free",
+  LLAMA_3_1_70B: "meta-llama/llama-3.1-70b-instruct:free",
 };
 
-export class OpenAIProvider implements ILLMProvider {
-  readonly providerType = ProviderType.OPENAI;
+export class OpenRouterProvider implements ILLMProvider {
+  readonly providerType = ProviderType.OPENROUTER;
   private client: OpenAI;
 
   constructor(
-    apiKey = process.env.GROQ_API_KEY || "",
-    baseUrl = "https://api.groq.com/openai/v1"
+    apiKey = process.env.OPENROUTER_API_KEY || "",
+    baseUrl = "https://openrouter.ai/api/v1"
   ) {
-    this.client = new OpenAI({ apiKey, baseURL: baseUrl });
+    this.client = new OpenAI({
+      apiKey,
+      baseURL: baseUrl,
+      defaultHeaders: {
+        "HTTP-Referer": "https://agentbuilder.app",
+        "X-Title": "Agent Builder",
+      },
+    });
   }
 
   private buildMessages(options: LLMCompletionOptions): OpenAI.Chat.ChatCompletionMessageParam[] {
@@ -35,7 +42,7 @@ export class OpenAIProvider implements ILLMProvider {
 
   async generateCompletion(options: LLMCompletionOptions): Promise<LLMCompletionResponse> {
     const startTime = Date.now();
-    const model = MODEL_MAP[options.model] || "llama-3.1-8b-instant";
+    const model = MODEL_MAP[options.model] || "meta-llama/llama-3.1-8b-instruct:free";
 
     const response = await this.client.chat.completions.create({
       model,
@@ -62,7 +69,7 @@ export class OpenAIProvider implements ILLMProvider {
     onChunk: (chunk: string) => void
   ): Promise<LLMCompletionResponse> {
     const startTime = Date.now();
-    const model = MODEL_MAP[options.model] || "llama-3.1-8b-instant";
+    const model = MODEL_MAP[options.model] || "meta-llama/llama-3.1-8b-instruct:free";
 
     const stream = await this.client.chat.completions.create({
       model,

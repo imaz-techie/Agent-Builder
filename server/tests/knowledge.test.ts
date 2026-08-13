@@ -3,10 +3,20 @@ import { createApp } from "../src/app";
 import { generateAccessToken } from "../src/utils/jwt";
 import { knowledgeRepository } from "../src/repositories/knowledge.repository";
 import { workspaceRepository } from "../src/repositories/workspace.repository";
+import { EmbeddingService } from "../src/services/embedding.service";
 import { FileStatus, FileType, WorkspaceRole } from "@prisma/client";
 
 jest.mock("../src/repositories/knowledge.repository");
 jest.mock("../src/repositories/workspace.repository");
+jest.mock("../src/services/embedding.service");
+jest.mock("../src/database", () => ({
+  prisma: {
+    documentChunk: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    $executeRawUnsafe: jest.fn().mockResolvedValue(1),
+  },
+}));
 
 describe("Phase 5 Knowledge Base Endpoints", () => {
   const app = createApp();

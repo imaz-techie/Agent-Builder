@@ -7,15 +7,19 @@ import { WorkspaceRole } from "@prisma/client";
 import {
   upsertWidgetConfigSchema,
   publicWidgetChatSchema,
+  publicWidgetStreamQuerySchema,
 } from "../validators/widget.validator";
 import {
   upsertWidgetConfig,
   getWidgetConfig,
   getPublicWidgetConfig,
   sendPublicWidgetMessage,
+  createPublicWidgetSession,
+  streamPublicWidgetMessage,
   publishWidget,
   regenerateWidgetToken,
 } from "../controllers/widget.controller";
+import { widgetRateLimiter } from "../middlewares/widgetRateLimit";
 
 const router = Router();
 
@@ -39,8 +43,64 @@ const router = Router();
  *       200:
  *         description: Widget configuration retrieved
  */
-router.get("/public/widgets/:token/config", asyncHandler(getPublicWidgetConfig));
-router.get("/widgets/:token/config", asyncHandler(getPublicWidgetConfig));
+router.get("/public/widgets/:token/config", widgetRateLimiter, asyncHandler(getPublicWidgetConfig));
+router.get("/widgets/:token/config", widgetRateLimiter, asyncHandler(getPublicWidgetConfig));
+
+/**
+ * @openapi
+ * /public/widgets/{token}/session:
+ *   post:
+ *     summary: Create an anonymous widget chat session
+ *     tags:
+ *       - Embeddable Chat Widget
+ *     parameters:
+ *       - name: token
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       201:
+ *         description: Widget session created
+ */
+router.post("/public/widgets/:token/session", widgetRateLimiter, asyncHandler(createPublicWidgetSession));
+router.post("/widgets/:token/session", widgetRateLimiter, asyncHandler(createPublicWidgetSession));
+
+/**
+ * @openapi
+ * /public/widgets/{token}/stream:
+ *   get:
+ *     summary: Stream a widget message response over SSE
+ *     tags:
+ *       - Embeddable Chat Widget
+ *     parameters:
+ *       - name: token
+ *         in: path
+ *         required: true
+ *         schema: { type: "string" }
+ *       - name: sessionId
+ *         in: query
+ *         required: false
+ *         schema: { type: "string" }
+ *       - name: content
+ *         in: query
+ *         required: true
+ *         schema: { type: "string" }
+ *     responses:
+ *       200:
+ *         description: SSE stream of assistant chunks
+ */
+router.get(
+  "/public/widgets/:token/stream",
+  widgetRateLimiter,
+  validate(publicWidgetStreamQuerySchema),
+  asyncHandler(streamPublicWidgetMessage)
+);
+router.get(
+  "/widgets/:token/stream",
+  widgetRateLimiter,
+  validate(publicWidgetStreamQuerySchema),
+  asyncHandler(streamPublicWidgetMessage)
+);
 
 /**
  * @openapi

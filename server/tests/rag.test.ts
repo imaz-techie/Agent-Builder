@@ -8,6 +8,16 @@ import { WorkspaceRole, FileType } from "@prisma/client";
 
 jest.mock("../src/repositories/rag.repository");
 jest.mock("../src/repositories/workspace.repository");
+jest.mock("../src/services/embedding.service", () => {
+  const actual = jest.requireActual("../src/services/embedding.service");
+  return {
+    EmbeddingService: {
+      generateEmbedding: jest.fn(),
+      generateEmbeddings: jest.fn(),
+      cosineSimilarity: actual.EmbeddingService.cosineSimilarity,
+    },
+  };
+});
 
 describe("Phase 9 RAG Retrieval Engine Endpoints", () => {
   const app = createApp();
@@ -15,20 +25,17 @@ describe("Phase 9 RAG Retrieval Engine Endpoints", () => {
   const workspaceId = "ws-uuid-rag";
   const token = generateAccessToken({ userId, email: "rag@example.com", role: "DEVELOPER" });
 
-  const mockChunk = {
+  const mockVector = Array.from({ length: 768 }, (_, i) => (i + 1) / 768);
+
+  const mockVectorRow = {
     id: "chunk-1",
-    knowledgeFileId: "file-1",
-    chunkIndex: 0,
+    knowledge_file_id: "file-1",
+    chunk_index: 0,
     content: "Agent Builder supports hybrid vector search for document RAG context retrieval.",
-    tokenCount: 14,
-    metadata: null,
-    createdAt: new Date(),
-    knowledgeFile: {
-      id: "file-1",
-      name: "RAG_Overview.txt",
-      type: FileType.TXT,
-      workspaceId,
-    },
+    token_count: 14,
+    file_name: "RAG_Overview.txt",
+    file_type: FileType.TXT,
+    score: 0.9123,
   };
 
   const mockRagLog = {
@@ -56,18 +63,19 @@ describe("Phase 9 RAG Retrieval Engine Endpoints", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (EmbeddingService.generateEmbedding as jest.Mock).mockResolvedValue(mockVector);
   });
 
-  it("EmbeddingService should generate 1536-dim vector & compute cosine similarity", () => {
-    const vec1 = EmbeddingService.generateEmbedding("Agent Builder RAG Query");
+  it("EmbeddingService should generate 768-dim vector & compute cosine similarity", async () => {
+    const vec1 = await EmbeddingService.generateEmbedding("Agent Builder RAG Query");
 
-    expect(vec1).toHaveLength(1536);
+    expect(vec1).toHaveLength(768);
 
     const selfSimilarity = EmbeddingService.cosineSimilarity(vec1, vec1);
     expect(selfSimilarity).toBeCloseTo(1.0, 4);
   });
 
-  it("POST /api/v1/workspaces/:id/rag/embeddings should return 1536-dim vector", async () => {
+  it("POST /api/v1/workspaces/:id/rag/embeddings should return 768-dim vector", async () => {
     (workspaceRepository.findMember as jest.Mock).mockResolvedValue({
       id: "mem-1",
       workspaceId,
@@ -82,17 +90,17 @@ describe("Phase 9 RAG Retrieval Engine Endpoints", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.vector).toHaveLength(1536);
+    expect(res.body.data.vector).toHaveLength(768);
   });
 
-  it("POST /api/v1/workspaces/:id/rag/query should perform hybrid search & return context + citations", async () => {
+  it("POST /api/v1/workspaces/:id/rag/query should perform vector search & return context + citations", async () => {
     (workspaceRepository.findMember as jest.Mock).mockResolvedValue({
       id: "mem-1",
       workspaceId,
       userId,
       role: WorkspaceRole.MEMBER,
     });
-    (ragRepository.fetchWorkspaceChunks as jest.Mock).mockResolvedValue([mockChunk]);
+    (ragRepository.vectorSearchChunks as jest.Mock).mockResolvedValue([mockVectorRow]);
     (ragRepository.saveRagQueryLog as jest.Mock).mockResolvedValue(mockRagLog);
 
     const res = await request(app)

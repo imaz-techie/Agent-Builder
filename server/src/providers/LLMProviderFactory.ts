@@ -1,5 +1,6 @@
 import { ILLMProvider } from "./ILLMProvider";
 import { OpenAIProvider } from "./OpenAIProvider";
+import { OpenRouterProvider } from "./OpenRouterProvider";
 import { AnthropicProvider } from "./AnthropicProvider";
 import { GeminiProvider } from "./GeminiProvider";
 import { OllamaProvider } from "./OllamaProvider";
@@ -12,6 +13,8 @@ export class LLMProviderFactory {
     switch (type) {
       case ProviderType.OPENAI:
         return new OpenAIProvider(apiKey, baseUrl);
+      case ProviderType.OPENROUTER:
+        return new OpenRouterProvider(apiKey);
       case ProviderType.ANTHROPIC:
         return new AnthropicProvider(apiKey);
       case ProviderType.GEMINI:
@@ -54,7 +57,7 @@ export class LLMProviderFactory {
     }
 
     // Ultimate fallback if all configured providers fail
-    const ultimateFallback = new OllamaProvider();
+    const ultimateFallback = new OpenRouterProvider();
     return ultimateFallback.generateCompletion(options);
   }
 }

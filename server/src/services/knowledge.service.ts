@@ -1,5 +1,8 @@
 import { knowledgeRepository } from "../repositories/knowledge.repository";
 import { workspaceRepository } from "../repositories/workspace.repository";
+import { prisma } from "../database";
+import { EmbeddingService } from "./embedding.service";
+import { logger } from "../utils/logger";
 import {
   saveUploadedFile,
   deleteStoredFile,
@@ -69,6 +72,36 @@ function sanitizeKnowledgeFile(file: KnowledgeFile) {
 }
 
 export class KnowledgeService {
+  /**
+   * Generates Gemini embeddings for every chunk of a file and persists them via raw SQL.
+   * A single chunk failure does not fail the whole upload (logged as a warning).
+   */
+  private async embedFileChunks(knowledgeFileId: string): Promise<number> {
+    const chunkRecords = await prisma.documentChunk.findMany({
+      where: { knowledgeFileId },
+      orderBy: { chunkIndex: "asc" },
+      select: { id: true, content: true },
+    });
+
+    let embedded = 0;
+    for (const chunk of chunkRecords) {
+      try {
+        const embedding = await EmbeddingService.generateEmbedding(chunk.content);
+        const vectorStr = `[${embedding.join(",")}]`;
+        await prisma.$executeRawUnsafe(
+          `UPDATE document_chunks SET embedding = $1::vector WHERE id = $2`,
+          vectorStr,
+          chunk.id
+        );
+        embedded++;
+      } catch (err) {
+        logger.warn(`Failed to embed chunk ${chunk.id}: ${(err as Error).message}`);
+      }
+    }
+
+    return embedded;
+  }
+
   async uploadAndIngestFile(
     workspaceId: string,
     userId: string,
@@ -102,6 +135,8 @@ export class KnowledgeService {
           metadata: { source: record.name, type: fileType },
         }))
       );
+
+      await this.embedFileChunks(record.id);
 
       const updated = await knowledgeRepository.updateFileStatus(
         record.id,
@@ -147,6 +182,8 @@ export class KnowledgeService {
         metadata: { url: dto.url },
       }))
     );
+
+    await this.embedFileChunks(record.id);
 
     const updated = await knowledgeRepository.updateFileStatus(
       record.id,
@@ -215,6 +252,8 @@ export class KnowledgeService {
         metadata: { source: file.name, type: file.type },
       }))
     );
+
+    await this.embedFileChunks(file.id);
 
     const updated = await knowledgeRepository.updateFileStatus(
       file.id,

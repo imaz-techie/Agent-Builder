@@ -28,59 +28,41 @@ export class RagService {
   /**
    * Generates embedding vector for raw text
    */
-  generateEmbedding(text: string) {
-    const vector = EmbeddingService.generateEmbedding(text);
+  async generateEmbedding(text: string) {
+    const vector = await EmbeddingService.generateEmbedding(text);
     return {
       vector,
       dimensions: vector.length,
-      model: "text-embedding-3-small",
+      model: "text-embedding-004",
     };
   }
 
   /**
-   * Performs hybrid search (keyword similarity + vector dot product) across workspace chunks
+   * Performs pgvector cosine similarity search across workspace chunks
    */
   async retrieveHybrid(
     workspaceId: string,
     queryText: string,
     topK = 5
   ): Promise<VectorChunkMatch[]> {
-    const chunks = await ragRepository.fetchWorkspaceChunks(workspaceId);
-    if (chunks.length === 0) return [];
+    // 1. Generate query embedding via Gemini
+    const queryVector = await EmbeddingService.generateEmbedding(queryText);
+    if (queryVector.length === 0) return [];
+    const vectorStr = `[${queryVector.join(",")}]`;
 
-    const queryVector = EmbeddingService.generateEmbedding(queryText);
-    const queryLower = queryText.toLowerCase();
+    // 2. pgvector cosine similarity search (HNSW index accelerated)
+    const results = await ragRepository.vectorSearchChunks(workspaceId, vectorStr, topK);
 
-    const matches: VectorChunkMatch[] = chunks.map((chunk) => {
-      const chunkVector = EmbeddingService.generateEmbedding(chunk.content);
-      const vectorScore = EmbeddingService.cosineSimilarity(queryVector, chunkVector);
-
-      // Keyword boost calculation
-      let keywordBoost = 0;
-      const terms = queryLower.split(" ").filter((t) => t.length > 2);
-      terms.forEach((term) => {
-        if (chunk.content.toLowerCase().includes(term)) {
-          keywordBoost += 0.15;
-        }
-      });
-
-      const hybridScore = Math.min(1.0, vectorScore * 0.7 + keywordBoost);
-
-      return {
-        chunkId: chunk.id,
-        fileId: chunk.knowledgeFileId,
-        fileName: chunk.knowledgeFile.name,
-        fileType: chunk.knowledgeFile.type,
-        chunkIndex: chunk.chunkIndex,
-        content: chunk.content,
-        tokenCount: chunk.tokenCount,
-        score: parseFloat(hybridScore.toFixed(4)),
-      };
-    });
-
-    // Sort descending by similarity score
-    matches.sort((a, b) => b.score - a.score);
-    return matches.slice(0, topK);
+    return results.map((r) => ({
+      chunkId: r.id,
+      fileId: r.knowledge_file_id,
+      fileName: r.file_name,
+      fileType: r.file_type,
+      chunkIndex: r.chunk_index,
+      content: r.content,
+      tokenCount: r.token_count,
+      score: parseFloat(Number(r.score).toFixed(4)),
+    }));
   }
 
   /**

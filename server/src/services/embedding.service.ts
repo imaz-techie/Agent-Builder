@@ -1,33 +1,43 @@
 /**
  * Embedding Service & Vector Math Utilities
+ * Uses Gemini text-embedding-004 (768 dimensions) for real semantic embeddings.
  */
+import { GoogleGenAI } from "@google/genai";
+import { config } from "../config";
 
 export class EmbeddingService {
-  /**
-   * Generates a 1536-dimensional float vector embedding for input text
-   */
-  static generateEmbedding(text: string): number[] {
-    const dimensions = 1536;
-    const vector: number[] = new Array(dimensions);
-    
-    // Deterministic pseudo-vector generation based on text character hash
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      hash = (hash << 5) - hash + text.charCodeAt(i);
-      hash |= 0;
-    }
+  private static ai: GoogleGenAI | null = null;
 
-    for (let i = 0; i < dimensions; i++) {
-      const seed = Math.sin(hash + i) * 10000;
-      vector[i] = (seed - Math.floor(seed)) * 2 - 1; // Float between -1.0 and 1.0
+  private static getClient(): GoogleGenAI {
+    if (!this.ai) {
+      if (!config.geminiApiKey) {
+        throw new Error("GEMINI_API_KEY is not configured");
+      }
+      this.ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
     }
-
-    // Normalize vector to unit length
-    return this.normalizeVector(vector);
+    return this.ai;
   }
 
   /**
-   * Calculates Cosine Similarity between two 1536-dimensional vectors
+   * Generate a 768-dim embedding using Gemini text-embedding-004
+   */
+  static async generateEmbedding(text: string): Promise<number[]> {
+    const result = await this.getClient().models.embedContent({
+      model: "text-embedding-004",
+      contents: text,
+    });
+    return result.embeddings?.[0]?.values ?? [];
+  }
+
+  /**
+   * Batch embedding for multiple texts
+   */
+  static async generateEmbeddings(texts: string[]): Promise<number[][]> {
+    return Promise.all(texts.map((text) => this.generateEmbedding(text)));
+  }
+
+  /**
+   * Cosine similarity (utility fallback for in-memory comparison)
    */
   static cosineSimilarity(vecA: number[], vecB: number[]): number {
     if (vecA.length !== vecB.length) return 0;
@@ -44,15 +54,5 @@ export class EmbeddingService {
 
     if (normA === 0 || normB === 0) return 0;
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-  }
-
-  private static normalizeVector(vector: number[]): number[] {
-    let norm = 0;
-    for (const val of vector) {
-      norm += val * val;
-    }
-    norm = Math.sqrt(norm);
-    if (norm === 0) return vector;
-    return vector.map((val) => val / norm);
   }
 }

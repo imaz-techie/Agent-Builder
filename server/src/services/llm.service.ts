@@ -65,7 +65,10 @@ export class LLMService {
     );
 
     const primaryType = activeConfigs.length > 0 ? activeConfigs[0].provider : ProviderType.OPENAI;
-    const provider = LLMProviderFactory.getProvider(primaryType);
+    const apiKey = activeConfigs.length > 0 && activeConfigs[0].apiKeyEncrypted
+      ? Buffer.from(activeConfigs[0].apiKeyEncrypted, "base64").toString("utf-8")
+      : undefined;
+    const provider = LLMProviderFactory.getProvider(primaryType, apiKey);
 
     return provider.streamCompletion(options, onChunk);
   }
@@ -78,7 +81,10 @@ export class LLMService {
       throw ApiError.notFound("Provider configuration not found in this workspace");
     }
 
-    const provider = LLMProviderFactory.getProvider(target.provider);
+    const apiKey = target.apiKeyEncrypted
+      ? Buffer.from(target.apiKeyEncrypted, "base64").toString("utf-8")
+      : undefined;
+    const provider = LLMProviderFactory.getProvider(target.provider, apiKey);
     const isHealthy = await provider.testConnection();
 
     return { healthy: isHealthy, provider: target.provider };

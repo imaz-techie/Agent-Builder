@@ -1,4 +1,5 @@
 import express, { Express } from "express";
+import path from "path";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
@@ -14,22 +15,17 @@ import { asyncHandler } from "./utils/asyncHandler";
 export function createApp(): Express {
   const app = express();
 
-
   // Core Security & Optimization Middlewares
-  // app.use(helmet());
-  // app.use(
-  //   cors({
-  //     origin: config.corsOrigin,
-  //     credentials: true,
-  //   })
-  // );
+  app.use(helmet());
   // Enable CORS allowing all origins with credentials
   app.use(cors({ origin: true, credentials: true }));
-
 
   app.use(compression());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Serve static assets (widget.js, public embed script)
+  app.use(express.static(path.join(__dirname, "../public")));
 
   // Logging & Rate Limiting
   app.use(requestLogger);

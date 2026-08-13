@@ -80,6 +80,10 @@ export async function streamMessage(req: Request, res: Response) {
   const sessionId = req.query.sessionId as string;
   const content = req.query.content as string;
 
+  const heartbeat = setInterval(() => {
+    res.write(": heartbeat\n\n");
+  }, 15000);
+
   try {
     await chatService.streamMessage(
       workspaceId,
@@ -90,9 +94,11 @@ export async function streamMessage(req: Request, res: Response) {
         res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
       }
     );
+    clearInterval(heartbeat);
     res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {
+    clearInterval(heartbeat);
     res.write(`data: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
     res.end();
   }

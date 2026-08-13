@@ -132,3 +132,55 @@ export async function sendPublicWidgetMessage(req: Request, res: Response) {
     data: result,
   });
 }
+
+export async function createPublicWidgetSession(req: Request, res: Response) {
+  const param = req.params.token || req.params.id;
+  const token = Array.isArray(param) ? param[0] : param;
+
+  const result = await widgetService.createPublicSession(token);
+
+  return sendApiResponse({
+    res,
+    statusCode: 201,
+    message: "Widget session created",
+    data: result,
+  });
+}
+
+export async function streamPublicWidgetMessage(req: Request, res: Response) {
+  const param = req.params.token || req.params.id;
+  const token = Array.isArray(param) ? param[0] : param;
+
+  const sessionId = req.query.sessionId as string;
+  const content = req.query.content as string;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const heartbeat = setInterval(() => {
+    res.write(": heartbeat\n\n");
+  }, 15000);
+
+  try {
+    const result = await widgetService.streamPublicWidgetMessage(
+      token,
+      sessionId,
+      content,
+      (chunk: string) => {
+        res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      }
+    );
+
+    clearInterval(heartbeat);
+    res.write(
+      `data: ${JSON.stringify({ sessionId: result.sessionId, done: true })}\n\n`
+    );
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (error) {
+    clearInterval(heartbeat);
+    res.write(`data: ${JSON.stringify({ error: (error as Error).message })}\n\n`);
+    res.end();
+  }
+}

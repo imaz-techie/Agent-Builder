@@ -17,4 +17,7 @@ export const config = {
   logging: {
     level: process.env.LOG_LEVEL || "info",
   },
+  groqApiKey: process.env.GROQ_API_KEY || "",
+  geminiApiKey: process.env.GEMINI_API_KEY || "",
+  openrouterApiKey: process.env.OPENROUTER_API_KEY || "",
 };

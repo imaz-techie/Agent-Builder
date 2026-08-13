@@ -209,4 +209,75 @@ describe("Phase 12 Embed Widget Endpoints", () => {
     expect(res.body.data.sessionId).toBe("session-uuid-555");
     expect(res.body.data.assistantMessage.content).toBe("Hi there!");
   });
+
+  it("POST /api/v1/public/widgets/:token/session should create anonymous session without auth", async () => {
+    (widgetRepository.findPublishedWidgetByToken as jest.Mock).mockResolvedValue(mockWidget);
+    (chatService.createSession as jest.Mock).mockResolvedValue({
+      id: "session-uuid-777",
+      agentId,
+      title: "Widget Chat",
+      workspaceId,
+      createdById: userId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await request(app).post(`/api/v1/public/widgets/${widgetToken}/session`);
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.sessionId).toBe("session-uuid-777");
+    expect(chatService.createSession).toHaveBeenCalledWith(
+      workspaceId,
+      userId,
+      { agentId, title: "Widget Chat" }
+    );
+  });
+
+  it("GET /api/v1/public/widgets/:token/stream should stream chunks over SSE without auth", async () => {
+    (widgetRepository.findPublishedWidgetByToken as jest.Mock).mockResolvedValue(mockWidget);
+    (chatRepository.findSessionById as jest.Mock).mockResolvedValue({
+      id: "session-uuid-555",
+      agentId,
+      workspaceId,
+    });
+    (chatService.streamMessage as jest.Mock).mockImplementation(
+      (_ws: string, _u: string, _s: string, _c: string, onChunk: (chunk: string) => void) => {
+        onChunk("Hello");
+        onChunk(" world");
+        return Promise.resolve(undefined);
+      }
+    );
+
+    const res = await request(app).get(
+      `/api/v1/public/widgets/${widgetToken}/stream?sessionId=session-uuid-555&content=Hello`
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/event-stream");
+    expect(res.text).toContain('data: {"chunk":"Hello"}');
+    expect(res.text).toContain('data: {"chunk":" world"}');
+    expect(res.text).toContain("data: [DONE]");
+    expect(res.text).toContain('"sessionId":"session-uuid-555"');
+  });
+
+  it("GET /widget.js should serve the standalone embed script", async () => {
+    const res = await request(app).get("/widget.js");
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("javascript");
+    expect(res.text).toContain("AgentWidget");
+  });
+
+  it("GET /api/v1/public/widgets/:token/stream should emit error event for invalid token", async () => {
+    (widgetRepository.findPublishedWidgetByToken as jest.Mock).mockResolvedValue(null);
+
+    const res = await request(app).get(
+      `/api/v1/public/widgets/${widgetToken}/stream?content=Hello`
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("Widget configuration not found or not published");
+    expect(res.text).not.toContain("data: [DONE]");
+  });
 });

@@ -31,3 +31,10 @@ export const publicWidgetChatSchema = z.object({
     sessionId: z.string().optional(),
   }),
 });
+
+export const publicWidgetStreamQuerySchema = z.object({
+  query: z.object({
+    sessionId: z.string().min(1).optional(),
+    content: z.string().min(1, "Message is required").max(8000),
+  }),
+});

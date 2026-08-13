@@ -322,6 +322,7 @@ model DocumentChunk {
   chunkIndex      Int
   content         String
   tokenCount      Int           @default(0)
+  embedding       Unsupported("vector(768)")?
   metadata        Json?
   createdAt       DateTime      @default(now())
   knowledgeFile   KnowledgeFile @relation(fields: [knowledgeFileId], references: [id], onDelete: Cascade)

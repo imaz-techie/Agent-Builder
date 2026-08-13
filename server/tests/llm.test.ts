@@ -8,6 +8,26 @@ import { LlmModel, ProviderType, WorkspaceRole } from "@prisma/client";
 jest.mock("../src/repositories/llmProvider.repository");
 jest.mock("../src/repositories/workspace.repository");
 
+jest.mock("openai", () => {
+  const createMock = jest.fn(async (opts: any) => {
+    if (opts.stream) {
+      return (async function* () {
+        yield { choices: [{ delta: { content: "Hello " } }] };
+        yield { choices: [{ delta: { content: "world" } }] };
+      })();
+    }
+    return {
+      choices: [{ message: { content: `[OpenAI ${opts.model} Response]\n${opts.messages[opts.messages.length - 1].content}` } }],
+      usage: { total_tokens: 24 },
+    };
+  });
+  class MockOpenAI {
+    chat = { completions: { create: createMock } };
+    models = { list: jest.fn().mockResolvedValue({ data: [] }) };
+  }
+  return { __esModule: true, default: MockOpenAI };
+});
+
 describe("Phase 8 LLM Provider Abstraction Endpoints", () => {
   const app = createApp();
   const userId = "user-uuid-llm";

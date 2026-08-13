@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: agent-builder-api
+    runtime: node
+    buildCommand: npm ci && npx prisma migrate deploy && npx prisma generate && npm run build && npm run build:widget
+    startCommand: node dist/server.js
+    healthCheckPath: /health

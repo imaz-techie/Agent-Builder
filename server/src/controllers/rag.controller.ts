@@ -21,7 +21,7 @@ export async function queryRag(req: Request, res: Response) {
 }
 
 export async function generateEmbeddings(req: Request, res: Response) {
-  const result = ragService.generateEmbedding(req.body.text);
+  const result = await ragService.generateEmbedding(req.body.text);
 
   return sendApiResponse({
     res,

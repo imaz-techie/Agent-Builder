@@ -11,6 +11,7 @@ COPY . .
 
 RUN npx prisma generate
 RUN npm run build
+RUN npm run build:widget
 
 FROM node:20-alpine AS runner
 
@@ -22,6 +23,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
