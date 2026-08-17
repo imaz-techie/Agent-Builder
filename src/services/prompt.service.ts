@@ -10,14 +10,16 @@ import type {
   ComparePromptsDto,
   PromptComparisonResult,
 } from "@/types/prompt.types";
+import { resolveWorkspaceId } from "@/lib/workspace-id";
 
 export const promptService = {
   async getTemplates(
-    workspaceId: string = "ws_default",
+    workspaceId?: string,
     category?: string
   ): Promise<PromptTemplate[]> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.get<ApiResponse<{ templates: PromptTemplate[] }>>(
-      API_ENDPOINTS.PROMPTS.TEMPLATES(workspaceId),
+      API_ENDPOINTS.PROMPTS.TEMPLATES(wsId),
       { params: category ? { category } : undefined }
     );
     return response.data.data.templates;
@@ -25,20 +27,22 @@ export const promptService = {
 
   async getTemplateDetails(
     templateId: string,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<PromptTemplate> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.get<ApiResponse<{ template: PromptTemplate }>>(
-      API_ENDPOINTS.PROMPTS.TEMPLATE_DETAIL(workspaceId, templateId)
+      API_ENDPOINTS.PROMPTS.TEMPLATE_DETAIL(wsId, templateId)
     );
     return response.data.data.template;
   },
 
   async createTemplate(
     dto: CreatePromptTemplateDto,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<PromptTemplate> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.post<ApiResponse<{ template: PromptTemplate }>>(
-      API_ENDPOINTS.PROMPTS.TEMPLATES(workspaceId),
+      API_ENDPOINTS.PROMPTS.TEMPLATES(wsId),
       dto
     );
     return response.data.data.template;
@@ -47,10 +51,11 @@ export const promptService = {
   async updateTemplate(
     templateId: string,
     dto: UpdatePromptTemplateDto,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<PromptTemplate> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.patch<ApiResponse<{ template: PromptTemplate }>>(
-      API_ENDPOINTS.PROMPTS.TEMPLATE_DETAIL(workspaceId, templateId),
+      API_ENDPOINTS.PROMPTS.TEMPLATE_DETAIL(wsId, templateId),
       dto
     );
     return response.data.data.template;
@@ -58,17 +63,19 @@ export const promptService = {
 
   async deleteTemplate(
     templateId: string,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<void> {
-    await apiClient.delete(API_ENDPOINTS.PROMPTS.TEMPLATE_DETAIL(workspaceId, templateId));
+    const wsId = resolveWorkspaceId(workspaceId);
+    await apiClient.delete(API_ENDPOINTS.PROMPTS.TEMPLATE_DETAIL(wsId, templateId));
   },
 
   async executePrompt(
     dto: ExecutePromptDto,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<PromptExecution> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.post<ApiResponse<{ execution: PromptExecution }>>(
-      API_ENDPOINTS.PROMPTS.EXECUTE(workspaceId),
+      API_ENDPOINTS.PROMPTS.EXECUTE(wsId),
       dto
     );
     return response.data.data.execution;
@@ -76,21 +83,24 @@ export const promptService = {
 
   async comparePrompts(
     dto: ComparePromptsDto,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<PromptComparisonResult[]> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.post<ApiResponse<{ comparisons: PromptComparisonResult[] }>>(
-      API_ENDPOINTS.PROMPTS.COMPARE(workspaceId),
+      API_ENDPOINTS.PROMPTS.COMPARE(wsId),
       dto
     );
     return response.data.data.comparisons;
   },
 
   async getExecutions(
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<PromptExecution[]> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.get<ApiResponse<{ executions: PromptExecution[] }>>(
-      API_ENDPOINTS.PROMPTS.EXECUTIONS(workspaceId)
+      API_ENDPOINTS.PROMPTS.EXECUTIONS(wsId)
     );
     return response.data.data.executions;
   },
 };
+

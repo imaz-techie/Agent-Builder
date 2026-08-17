@@ -32,13 +32,13 @@ export const adminService = {
     users: AdminUser[];
     meta?: PaginationMeta;
   }> {
-    const response = await apiClient.get<ApiResponse<{ users: AdminUser[] }>>(
+    const response = await apiClient.get<ApiResponse<{ users: AdminUser[] }, PaginationMeta>>(
       API_ENDPOINTS.ADMIN.USERS,
       { params }
     );
     return {
       users: response.data.data.users,
-      meta: response.data.meta as PaginationMeta | undefined,
+      meta: response.data.meta,
     };
   },
 
@@ -61,13 +61,13 @@ export const adminService = {
     workspaces: AdminWorkspace[];
     meta?: PaginationMeta;
   }> {
-    const response = await apiClient.get<ApiResponse<{ workspaces: AdminWorkspace[] }>>(
+    const response = await apiClient.get<ApiResponse<{ workspaces: AdminWorkspace[] }, PaginationMeta>>(
       API_ENDPOINTS.ADMIN.WORKSPACES,
       { params }
     );
     return {
       workspaces: response.data.data.workspaces,
-      meta: response.data.meta as PaginationMeta | undefined,
+      meta: response.data.meta,
     };
   },
 

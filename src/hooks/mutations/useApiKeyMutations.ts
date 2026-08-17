@@ -10,7 +10,7 @@ export function useCreateApiKeyMutation() {
   const workspaceId = useActiveWorkspaceId();
 
   return useMutation({
-    mutationFn: (dto: CreateApiKeyDto) => apiKeyService.createApiKey(workspaceId, dto),
+    mutationFn: (dto: CreateApiKeyDto) => apiKeyService.createApiKey(dto, workspaceId),
     onSuccess: () => {
       toast.success("API key created!");
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.API_KEYS.LIST(workspaceId) });
@@ -26,7 +26,7 @@ export function useRevokeApiKeyMutation() {
   const workspaceId = useActiveWorkspaceId();
 
   return useMutation({
-    mutationFn: (keyId: string) => apiKeyService.revokeApiKey(workspaceId, keyId),
+    mutationFn: (keyId: string) => apiKeyService.revokeApiKey(keyId, workspaceId),
     onSuccess: () => {
       toast.success("API Key revoked");
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.API_KEYS.LIST(workspaceId) });
@@ -36,3 +36,4 @@ export function useRevokeApiKeyMutation() {
     },
   });
 }
+

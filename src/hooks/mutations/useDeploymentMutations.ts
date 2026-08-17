@@ -10,7 +10,7 @@ export function useCreateDeploymentMutation() {
   const workspaceId = useActiveWorkspaceId();
 
   return useMutation({
-    mutationFn: (dto: CreateDeploymentDto) => deploymentService.createDeployment(workspaceId, dto),
+    mutationFn: (dto: CreateDeploymentDto) => deploymentService.createDeployment(dto, workspaceId),
     onSuccess: (dep) => {
       toast.success("Deployment created!", {
         description: `Deployed ${dep.agent?.name || dep.agentId} (v${dep.versionNumber}) to ${dep.environment.toLowerCase()}`,
@@ -28,7 +28,7 @@ export function useRollbackDeploymentMutation() {
   const workspaceId = useActiveWorkspaceId();
 
   return useMutation({
-    mutationFn: (deploymentId: string) => deploymentService.rollbackDeployment(workspaceId, deploymentId),
+    mutationFn: (deploymentId: string) => deploymentService.rollbackDeployment(deploymentId, workspaceId),
     onSuccess: () => {
       toast.success("Deployment rolled back");
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DEPLOYMENTS.LIST(workspaceId) });
@@ -44,7 +44,7 @@ export function useDeleteDeploymentMutation() {
   const workspaceId = useActiveWorkspaceId();
 
   return useMutation({
-    mutationFn: (deploymentId: string) => deploymentService.deleteDeployment(workspaceId, deploymentId),
+    mutationFn: (deploymentId: string) => deploymentService.deleteDeployment(deploymentId, workspaceId),
     onSuccess: () => {
       toast.success("Deployment deleted");
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DEPLOYMENTS.LIST(workspaceId) });
@@ -54,3 +54,4 @@ export function useDeleteDeploymentMutation() {
     },
   });
 }
+

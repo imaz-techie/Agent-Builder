@@ -7,34 +7,40 @@ import type {
   Invoice,
   UpdatePlanResult,
 } from "@/types/billing.types";
+import { resolveWorkspaceId } from "@/lib/workspace-id";
 
 export const billingService = {
-  async getAccount(workspaceId: string = "ws_default"): Promise<BillingAccount> {
+  async getAccount(workspaceId?: string): Promise<BillingAccount> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.get<ApiResponse<{ account: BillingAccount }>>(
-      API_ENDPOINTS.BILLING.ACCOUNT(workspaceId)
+      API_ENDPOINTS.BILLING.ACCOUNT(wsId)
     );
     return response.data.data.account;
   },
 
-  async getInvoices(workspaceId: string = "ws_default"): Promise<Invoice[]> {
+  async getInvoices(workspaceId?: string): Promise<Invoice[]> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.get<ApiResponse<{ invoices: Invoice[] }>>(
-      API_ENDPOINTS.BILLING.INVOICES(workspaceId)
+      API_ENDPOINTS.BILLING.INVOICES(wsId)
     );
     return response.data.data.invoices;
   },
 
-  async getUsageSummary(workspaceId: string = "ws_default"): Promise<BillingUsageSummary> {
+  async getUsageSummary(workspaceId?: string): Promise<BillingUsageSummary> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.get<ApiResponse<{ summary: BillingUsageSummary }>>(
-      API_ENDPOINTS.BILLING.USAGE(workspaceId)
+      API_ENDPOINTS.BILLING.USAGE(wsId)
     );
     return response.data.data.summary;
   },
 
-  async updatePlan(workspaceId: string = "ws_default", plan: string): Promise<UpdatePlanResult> {
+  async updatePlan(workspaceId: string | undefined, plan: string): Promise<UpdatePlanResult> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.patch<ApiResponse<UpdatePlanResult>>(
-      API_ENDPOINTS.BILLING.PLAN(workspaceId),
+      API_ENDPOINTS.BILLING.PLAN(wsId),
       { plan }
     );
     return response.data.data;
   },
 };
+

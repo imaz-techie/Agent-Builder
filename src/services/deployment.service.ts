@@ -2,33 +2,39 @@ import { apiClient } from "@/api/axios";
 import { API_ENDPOINTS } from "@/constants/api.constants";
 import type { ApiResponse } from "@/types/api.types";
 import type { Deployment, CreateDeploymentDto } from "@/types/deployment.types";
+import { resolveWorkspaceId } from "@/lib/workspace-id";
 
 export const deploymentService = {
-  async getDeployments(workspaceId: string = "ws_default"): Promise<Deployment[]> {
+  async getDeployments(workspaceId?: string): Promise<Deployment[]> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.get<ApiResponse<{ deployments: Deployment[] }>>(
-      API_ENDPOINTS.DEPLOYMENTS.LIST(workspaceId)
+      API_ENDPOINTS.DEPLOYMENTS.LIST(wsId)
     );
     return response.data.data.deployments;
   },
 
-  async createDeployment(workspaceId: string = "ws_default", dto: CreateDeploymentDto): Promise<Deployment> {
+  async createDeployment(dto: CreateDeploymentDto, workspaceId?: string): Promise<Deployment> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.post<ApiResponse<{ deployment: Deployment }>>(
-      API_ENDPOINTS.DEPLOYMENTS.CREATE(workspaceId),
+      API_ENDPOINTS.DEPLOYMENTS.CREATE(wsId),
       dto
     );
     return response.data.data.deployment;
   },
 
-  async rollbackDeployment(workspaceId: string = "ws_default", deploymentId: string): Promise<Deployment> {
+  async rollbackDeployment(deploymentId: string, workspaceId?: string): Promise<Deployment> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.post<ApiResponse<{ deployment: Deployment }>>(
-      API_ENDPOINTS.DEPLOYMENTS.ROLLBACK(workspaceId, deploymentId)
+      API_ENDPOINTS.DEPLOYMENTS.ROLLBACK(wsId, deploymentId)
     );
     return response.data.data.deployment;
   },
 
-  async deleteDeployment(workspaceId: string = "ws_default", deploymentId: string): Promise<void> {
+  async deleteDeployment(deploymentId: string, workspaceId?: string): Promise<void> {
+    const wsId = resolveWorkspaceId(workspaceId);
     await apiClient.delete<ApiResponse<unknown>>(
-      API_ENDPOINTS.DEPLOYMENTS.DETAIL(workspaceId, deploymentId)
+      API_ENDPOINTS.DEPLOYMENTS.DETAIL(wsId, deploymentId)
     );
   },
 };
+

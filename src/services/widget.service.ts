@@ -5,14 +5,16 @@ import type {
   ChatWidgetConfig,
   UpsertWidgetConfigDto,
 } from "@/types/widget.types";
+import { resolveWorkspaceId } from "@/lib/workspace-id";
 
 export const widgetService = {
   async getWidgetConfig(
     agentId: string,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<ChatWidgetConfig> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.get<ApiResponse<{ config: ChatWidgetConfig }>>(
-      API_ENDPOINTS.WIDGET.CONFIG(workspaceId, agentId)
+      API_ENDPOINTS.WIDGET.CONFIG(wsId, agentId)
     );
     return response.data.data.config;
   },
@@ -20,10 +22,11 @@ export const widgetService = {
   async upsertWidgetConfig(
     agentId: string,
     dto: UpsertWidgetConfigDto,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<ChatWidgetConfig> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.post<ApiResponse<{ config: ChatWidgetConfig }>>(
-      API_ENDPOINTS.WIDGET.CONFIG(workspaceId, agentId),
+      API_ENDPOINTS.WIDGET.CONFIG(wsId, agentId),
       dto
     );
     return response.data.data.config;
@@ -31,21 +34,24 @@ export const widgetService = {
 
   async publishWidget(
     widgetId: string,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<ChatWidgetConfig> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.post<ApiResponse<{ config: ChatWidgetConfig }>>(
-      API_ENDPOINTS.WIDGET.PUBLISH(workspaceId, widgetId)
+      API_ENDPOINTS.WIDGET.PUBLISH(wsId, widgetId)
     );
     return response.data.data.config;
   },
 
   async regenerateWidgetToken(
     widgetId: string,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<ChatWidgetConfig> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.post<ApiResponse<{ config: ChatWidgetConfig }>>(
-      API_ENDPOINTS.WIDGET.TOKEN(workspaceId, widgetId)
+      API_ENDPOINTS.WIDGET.TOKEN(wsId, widgetId)
     );
     return response.data.data.config;
   },
 };
+

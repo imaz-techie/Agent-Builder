@@ -5,31 +5,35 @@ import type {
   KnowledgeFile,
   KnowledgeFileDetails,
 } from "@/types/knowledge.types";
+import { resolveWorkspaceId } from "@/lib/workspace-id";
 
 export const knowledgeService = {
-  async getKnowledgeFiles(workspaceId: string = "ws_default"): Promise<KnowledgeFile[]> {
+  async getKnowledgeFiles(workspaceId?: string): Promise<KnowledgeFile[]> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.get<ApiResponse<{ files: KnowledgeFile[] }>>(
-      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_FILES(workspaceId)
+      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_FILES(wsId)
     );
     return response.data.data.files;
   },
 
   async getFileDetails(
     fileId: string,
-    workspaceId: string = "ws_default"
+    workspaceId?: string
   ): Promise<KnowledgeFileDetails> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.get<ApiResponse<KnowledgeFileDetails>>(
-      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_FILE_DETAIL(workspaceId, fileId)
+      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_FILE_DETAIL(wsId, fileId)
     );
     return response.data.data;
   },
 
-  async uploadKnowledgeFile(file: File, workspaceId: string = "ws_default"): Promise<KnowledgeFile> {
+  async uploadKnowledgeFile(file: File, workspaceId?: string): Promise<KnowledgeFile> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const formData = new FormData();
     formData.append("file", file);
 
     const response = await apiClient.post<ApiResponse<{ file: KnowledgeFile }>>(
-      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_UPLOAD(workspaceId),
+      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_UPLOAD(wsId),
       formData,
       {
         headers: {
@@ -40,22 +44,26 @@ export const knowledgeService = {
     return response.data.data.file;
   },
 
-  async addUrlSource(url: string, workspaceId: string = "ws_default", name?: string): Promise<KnowledgeFile> {
+  async addUrlSource(url: string, workspaceId?: string, name?: string): Promise<KnowledgeFile> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.post<ApiResponse<{ file: KnowledgeFile }>>(
-      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_URL(workspaceId),
+      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_URL(wsId),
       { url, name }
     );
     return response.data.data.file;
   },
 
-  async deleteKnowledgeFile(fileId: string, workspaceId: string = "ws_default"): Promise<void> {
-    await apiClient.delete(API_ENDPOINTS.WORKSPACES.KNOWLEDGE_FILE_DETAIL(workspaceId, fileId));
+  async deleteKnowledgeFile(fileId: string, workspaceId?: string): Promise<void> {
+    const wsId = resolveWorkspaceId(workspaceId);
+    await apiClient.delete(API_ENDPOINTS.WORKSPACES.KNOWLEDGE_FILE_DETAIL(wsId, fileId));
   },
 
-  async reindexKnowledgeFile(fileId: string, workspaceId: string = "ws_default"): Promise<KnowledgeFile> {
+  async reindexKnowledgeFile(fileId: string, workspaceId?: string): Promise<KnowledgeFile> {
+    const wsId = resolveWorkspaceId(workspaceId);
     const response = await apiClient.post<ApiResponse<{ file: KnowledgeFile }>>(
-      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_FILE_REINDEX(workspaceId, fileId)
+      API_ENDPOINTS.WORKSPACES.KNOWLEDGE_FILE_REINDEX(wsId, fileId)
     );
     return response.data.data.file;
   },
 };
+

@@ -26,13 +26,13 @@ export const notificationService = {
     notifications: AppNotification[];
     meta?: PaginationMeta;
   }> {
-    const response = await apiClient.get<ApiResponse<NotificationsResponse>>(
+    const response = await apiClient.get<ApiResponse<NotificationsResponse, PaginationMeta>>(
       API_ENDPOINTS.NOTIFICATIONS.LIST,
       { params }
     );
     return {
       notifications: response.data.data.notifications,
-      meta: response.data.meta as PaginationMeta | undefined,
+      meta: response.data.meta,
     };
   },
 
