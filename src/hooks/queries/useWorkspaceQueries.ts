@@ -1,12 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { workspaceService } from "@/services/workspace.service";
 import { QUERY_KEYS, STORAGE_KEYS } from "@/constants/api.constants";
-import { DEFAULT_WORKSPACE_ID } from "@/lib/workspace-id";
+import { DEFAULT_WORKSPACE_ID, setActiveWorkspaceId } from "@/lib/workspace-id";
 
 export function useWorkspacesQuery() {
   return useQuery({
     queryKey: QUERY_KEYS.WORKSPACES.LIST,
-    queryFn: () => workspaceService.getWorkspaces(),
+    queryFn: async () => {
+      const workspaces = await workspaceService.getWorkspaces();
+      if (workspaces && workspaces.length > 0) {
+        const storedId = sessionStorage.getItem(STORAGE_KEYS.WORKSPACE_ID);
+        const isValidStored = workspaces.some((w) => w.id === storedId);
+        if (!storedId || !isValidStored) {
+          setActiveWorkspaceId(workspaces[0].id);
+        }
+      }
+      return workspaces;
+    },
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -21,5 +31,18 @@ export function useWorkspaceQuery(workspaceId: string) {
 }
 
 export function useActiveWorkspaceId(): string {
-  return sessionStorage.getItem(STORAGE_KEYS.WORKSPACE_ID) || DEFAULT_WORKSPACE_ID;
+  const { data: workspaces } = useWorkspacesQuery();
+  const storedId = sessionStorage.getItem(STORAGE_KEYS.WORKSPACE_ID);
+
+  if (workspaces && workspaces.length > 0) {
+    const isValidStored = workspaces.some((w) => w.id === storedId);
+    if (!storedId || !isValidStored) {
+      const firstId = workspaces[0].id;
+      setActiveWorkspaceId(firstId);
+      return firstId;
+    }
+  }
+
+  return storedId || DEFAULT_WORKSPACE_ID;
 }
+
