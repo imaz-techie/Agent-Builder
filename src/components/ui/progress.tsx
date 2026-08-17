@@ -6,19 +6,23 @@ const Progress = React.forwardRef<
   React.ComponentRef<typeof ProgressPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> & {
     indicatorClassName?: string;
+    gradient?: boolean;
   }
->(({ className, value, indicatorClassName, ...props }, ref) => (
+>(({ className, value, indicatorClassName, gradient = true, ...props }, ref) => (
   <ProgressPrimitive.Root
     ref={ref}
     className={cn(
-      "relative h-3 w-full overflow-hidden rounded-full bg-muted",
+      "relative h-2.5 w-full overflow-hidden rounded-full bg-muted",
       className
     )}
     {...props}
   >
     <ProgressPrimitive.Indicator
       className={cn(
-        "h-full w-full flex-1 rounded-full bg-primary transition-all duration-500 ease-in-out",
+        "h-full w-full flex-1 rounded-full transition-all duration-700 ease-out",
+        gradient
+          ? "bg-gradient-to-r from-primary via-secondary to-accent"
+          : "bg-primary",
         indicatorClassName
       )}
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}

@@ -69,7 +69,7 @@ export default function AdminLayout() {
       <motion.aside
         initial={{ opacity: 0, x: -16 }}
         animate={{ opacity: 1, x: 0 }}
-        className="relative flex flex-col w-60 border-r border-border bg-card/50 backdrop-blur-sm shrink-0"
+        className="relative flex flex-col w-60 border-r border-border/60 glass-sidebar shrink-0"
       >
         <div className="flex items-center gap-3 border-b border-border/50 px-4 h-14 shrink-0">
           <div className="h-8 w-8 rounded-xl bg-gradient-to-linear-br from-primary to-secondary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
