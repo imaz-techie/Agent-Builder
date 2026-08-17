@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { workspaceService } from "@/services/workspace.service";
 import { QUERY_KEYS, STORAGE_KEYS } from "@/constants/api.constants";
-import { DEFAULT_WORKSPACE_ID, setActiveWorkspaceId } from "@/lib/workspace-id";
+import { DEFAULT_WORKSPACE_ID, setActiveWorkspaceId, isRealWorkspaceId } from "@/lib/workspace-id";
 
 export function useWorkspacesQuery() {
   return useQuery({
@@ -25,7 +25,7 @@ export function useWorkspaceQuery(workspaceId: string) {
   return useQuery({
     queryKey: QUERY_KEYS.WORKSPACES.DETAIL(workspaceId),
     queryFn: () => workspaceService.getWorkspaceDetails(workspaceId),
-    enabled: Boolean(workspaceId),
+    enabled: Boolean(workspaceId) && isRealWorkspaceId(workspaceId),
     staleTime: 5 * 60 * 1000,
   });
 }

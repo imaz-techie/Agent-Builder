@@ -2,12 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { analyticsService } from "@/services/analytics.service";
 import { QUERY_KEYS } from "@/constants/api.constants";
 import { useActiveWorkspaceId } from "@/hooks/queries/useWorkspaceQueries";
+import { isRealWorkspaceId } from "@/lib/workspace-id";
 
 export function useOverviewQuery() {
   const workspaceId = useActiveWorkspaceId();
   return useQuery({
     queryKey: QUERY_KEYS.ANALYTICS.OVERVIEW(workspaceId),
     queryFn: () => analyticsService.getOverview(workspaceId),
+    enabled: isRealWorkspaceId(workspaceId),
     staleTime: 60 * 1000,
   });
 }
@@ -17,6 +19,7 @@ export function useUsageQuery() {
   return useQuery({
     queryKey: QUERY_KEYS.ANALYTICS.USAGE(workspaceId),
     queryFn: () => analyticsService.getUsage(workspaceId),
+    enabled: isRealWorkspaceId(workspaceId),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -26,6 +29,7 @@ export function useAgentPerformanceQuery() {
   return useQuery({
     queryKey: QUERY_KEYS.ANALYTICS.AGENTS(workspaceId),
     queryFn: () => analyticsService.getAgentPerformance(workspaceId),
+    enabled: isRealWorkspaceId(workspaceId),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -35,6 +39,7 @@ export function useAuditLogsQuery() {
   return useQuery({
     queryKey: QUERY_KEYS.ANALYTICS.AUDIT_LOGS(workspaceId),
     queryFn: () => analyticsService.getAuditLogs(workspaceId),
+    enabled: isRealWorkspaceId(workspaceId),
     staleTime: 60 * 1000,
   });
 }

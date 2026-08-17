@@ -67,13 +67,19 @@ const colorSwatches = [
 
 type DeviceType = "desktop" | "tablet" | "mobile";
 
+function getWidgetScriptUrl() {
+  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
+  return backendUrl.replace(/\/api\/v1\/?$/, "") + "/widget.js";
+}
+
 function buildIntegrationSnippets(agentId: string, token: string) {
   const widgetRef = token || "wgt_xxxxxxxx";
   const widgetAttr = token ? `data-widget="${token}"` : "data-widget=\"wgt_xxxxxxxx\"";
+  const scriptUrl = getWidgetScriptUrl();
   return {
     HTML: {
       label: "HTML",
-      code: `<script src="https://agentmax.ai/widget.js" ${widgetAttr}></script>`,
+      code: `<script src="${scriptUrl}" ${widgetAttr}></script>`,
     },
     React: {
       label: "React",
@@ -144,7 +150,7 @@ export default defineNuxtConfig({
       label: "WordPress",
       code: `<!-- Add to your theme's footer.php or use a plugin -->
 <script
-  src="https://agentmax.ai/widget.js"
+  src="${scriptUrl}"
   ${widgetAttr}
   data-position="bottom-right">
 </script>`,
@@ -154,7 +160,7 @@ export default defineNuxtConfig({
       code: `<!-- Paste in Online Store > Themes > Edit code > theme.liquid -->
 <!-- Before the closing </body> tag -->
 <script
-  src="https://agentmax.ai/widget.js"
+  src="${scriptUrl}"
   ${widgetAttr}>
 </script>`,
     },
@@ -273,7 +279,7 @@ export default function EmbedWidgetPage() {
 
   const activeAgent = activeAgents.find((a) => a.id === selectedAgentId) ?? activeAgents[0];
 
-  const embedCode = `<script src="https://agentmax.ai/widget.js" data-widget="${
+  const embedCode = `<script src="${getWidgetScriptUrl()}" data-widget="${
     widgetToken || "wgt_xxxxxxxx"
   }"></script>`;
 

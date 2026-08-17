@@ -20,3 +20,9 @@ export function resolveWorkspaceId(workspaceId?: string): string {
   return workspaceId || DEFAULT_WORKSPACE_ID;
 }
 
+export function isRealWorkspaceId(workspaceId?: string): boolean {
+  const resolved = resolveWorkspaceId(workspaceId);
+  return Boolean(resolved && resolved !== DEFAULT_WORKSPACE_ID);
+}
+
+

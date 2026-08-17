@@ -3,12 +3,14 @@ import { toast } from "sonner";
 import { billingService } from "@/services/billing.service";
 import { QUERY_KEYS } from "@/constants/api.constants";
 import { useActiveWorkspaceId } from "@/hooks/queries/useWorkspaceQueries";
+import { isRealWorkspaceId } from "@/lib/workspace-id";
 
 export function useBillingAccountQuery() {
   const workspaceId = useActiveWorkspaceId();
   return useQuery({
     queryKey: QUERY_KEYS.BILLING.ACCOUNT(workspaceId),
     queryFn: () => billingService.getAccount(workspaceId),
+    enabled: isRealWorkspaceId(workspaceId),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -18,6 +20,7 @@ export function useInvoicesQuery() {
   return useQuery({
     queryKey: QUERY_KEYS.BILLING.INVOICES(workspaceId),
     queryFn: () => billingService.getInvoices(workspaceId),
+    enabled: isRealWorkspaceId(workspaceId),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -27,6 +30,7 @@ export function useUsageSummaryQuery() {
   return useQuery({
     queryKey: QUERY_KEYS.BILLING.USAGE(workspaceId),
     queryFn: () => billingService.getUsageSummary(workspaceId),
+    enabled: isRealWorkspaceId(workspaceId),
     staleTime: 60 * 1000,
   });
 }
